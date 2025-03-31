@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Chess Game</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='room.css') }}">
+
+</head>
+
+<body>
+  
+  <div id="notification-container"></div>
+  <div id="confirmation-overlay" style="display: none;">
+    <div id="confirmation-box">
+      <p id="confirmation-message"></p>
+      <div class="confirmation-buttons">
+        <button id="confirm-yes">Yes</button>
+        <button id="confirm-no">No</button>
+      </div>
+    </div>
+  </div>
+  
+
+  <div class="left-sidebar">
+    <div id="opponent-graveyard" class="graveyard"></div>
+      <div id="cardPreview"></div>
+      <div id="graveyard" class="graveyard"></div>
+  </div>
+  <div class="main">
+    <div class="board-wrapper">
+      <div id="opponent-hand"></div>
+      <div id="board"></div>
+      <div id="hand"></div>
+    </div>
+  </div>
+  <div class="right-sidebar">
+    <div class="opponentDetail">
+      <h6 id="opponentManaH6">Mana: 50</h6>
+      <div class="hand-card opponent-card user-2">🂠<h6 id="opponentDeckCount">?</h6></div>
+    </div>
+    <div class="turnDetail">
+      <h5 id="turnH5">Turn: </h5>
+      <h6 id="movesLeft">Moves left: 3</h6>
+      <button id="endTurnBtn">End Turn</button>
+    </div>
+    <div class="detail">
+      <h2 id="userH2">User: </h2>
+      <h6 id="manaH6">Mana: 50</h6>
+      <div class="hand-card opponent-card user-2">🂠<h6 id="deckCount">?</h6></div>
+    
+    </div>
+</div>
+
+  <audio id="deathSound" src="{{ url_for('static', filename='sounds/kill.wav') }}" preload="auto"></audio>
+<audio id="spawnSound" src="{{ url_for('static', filename='sounds/spawn.ogg') }}" preload="auto"></audio>
+<audio id="moveSound" src="{{ url_for('static', filename='sounds/whoosh.wav') }}" preload="auto"></audio>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>

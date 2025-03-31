@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Chess Game</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+
+</head>
+
+<body>
+  
+  <div id="notification-container"></div>
+  <div id="confirmation-overlay" style="display: none;">
+    <div id="confirmation-box">
+      <p id="confirmation-message"></p>
+      <div class="confirmation-buttons">
+        <button id="confirm-yes">Yes</button>
+        <button id="confirm-no">No</button>
+      </div>
+    </div>
+  </div>
+  
+
+  <div class="left-sidebar">
+  </div>
+  <div class="main">
+    <h1>Chess Game</h1>
+    <form action="/create-room">
+      <button id="createRoomBtn" class="btn">Create a new Room</button>
+    </form>
+    <button class="btn">Play against a Bot</button>
+  </div>
+  <div class="right-sidebar">
+
+</div>
+
+  <audio id="deathSound" src="{{ url_for('static', filename='sounds/kill.wav') }}" preload="auto"></audio>
+<audio id="spawnSound" src="{{ url_for('static', filename='sounds/spawn.ogg') }}" preload="auto"></audio>
+<audio id="moveSound" src="{{ url_for('static', filename='sounds/whoosh.wav') }}" preload="auto"></audio>
+  <script src="{{ url_for('static', filename='index.js') }}"></script>
+</body>
+
+</html>
