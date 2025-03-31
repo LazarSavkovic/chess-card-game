@@ -250,11 +250,20 @@ def game(ws, game_id):
             data = json.loads(message)
 
             if not user_id:
-                if '1' not in connected_users:
+                if game_id not in connected_users:
+                    connected_users[game_id] = {}
+
+                game_users = connected_users[game_id]
+
+                if '1' not in game_users:
                     user_id = '1'
-                else:
+                elif '2' not in game_users:
                     user_id = '2'
-                connected_users[user_id] = ws
+                else:
+                    ws.send(json.dumps({'type': 'error', 'message': 'Game room is full'}))
+                    return
+
+                game_users[user_id] = ws
 
                 # 👇 Send the assigned user ID back to the client
                 ws.send(json.dumps({'user_id': user_id}))
@@ -291,7 +300,7 @@ def game(ws, game_id):
                 serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
 
                 if success:
-                    for other_ws in connected_users.values():
+                    for other_ws in connected_users[game_id].values():
                         other_ws.send(json.dumps({
                             'type': 'update',
                             'board': serialized_board,
@@ -342,7 +351,7 @@ def game(ws, game_id):
                 if user_id == game.current_player:
                     game.toggle_turn()
                     serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
-                    for other_ws in connected_users.values():
+                    for other_ws in connected_users[game_id].values():
                         other_ws.send(json.dumps({
                             'type': 'update',
                             'board': serialized_board,
@@ -369,7 +378,7 @@ def game(ws, game_id):
                 serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
 
                 if success:
-                    for ws_conn in connected_users.values():
+                    for ws_conn in connected_users[game_id].values():
                         ws_conn.send(json.dumps({
                             'type': 'update',
                             'board': serialized_board,
@@ -391,7 +400,7 @@ def game(ws, game_id):
                         }))
                 else:
                     # Only notify the player who attempted the summon
-                    connected_users[user_id].send(json.dumps({
+                    connected_users[game_id][user_id].send(json.dumps({
                         'type': 'update',
                         'board': serialized_board,
                         'hand1': [c.to_dict() for c in game.hands['1']],
@@ -418,7 +427,7 @@ def game(ws, game_id):
                 if game_over:
                     winner = user_id
                     loser = '1' if user_id == '2' else '2'
-                    for uid, ws_conn in connected_users.items():
+                    for uid, ws_conn in connected_users[game_id].items():
                         ws_conn.send(json.dumps({
                             'type': 'game-over',
                             'board': serialized_board,
@@ -443,7 +452,7 @@ def game(ws, game_id):
                         }))
                     return
                 else:
-                    for other_ws in connected_users.values():
+                    for other_ws in connected_users[game_id].values():
                         other_ws.send(json.dumps({
                             'type': 'update',
                             'board': serialized_board,
@@ -469,7 +478,7 @@ def game(ws, game_id):
                 success, info = game.activate_sorcery(slot, user_id, target)
                 serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
 
-                for ws_conn in connected_users.values():
+                for ws_conn in connected_users[game_id].values():
                     ws_conn.send(json.dumps({
                         'type': 'update',
                         'board': serialized_board,
@@ -495,8 +504,8 @@ def game(ws, game_id):
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
-        if user_id and user_id in connected_users:
-            del connected_users[user_id]
+        if user_id and user_id in connected_users[game_id]:
+            del connected_users[game_id][user_id]
 
 if __name__ == '__main__':
     app.run(debug=True)
