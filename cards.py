@@ -234,6 +234,75 @@ class WingsOfTheShatteredSkies(Monster):
             mana=2
         )
 
+
+class AbyssalLeviathan(Monster):
+    name = "Abyssal Leviathan"
+    movement = {
+        "forward": 'any',
+        "back": 1,
+        "left": 1,
+        "right": 1
+    }
+    original_attack = 250
+    original_defense = 150
+
+    def __init__(self, owner):
+        super().__init__(
+            card_id='abyssal_leviathan',
+            owner=owner,
+            attack=self.original_attack,
+            defense=self.original_defense,
+            image='/static/cards/abyssal_leviathan.png',
+            mana=5
+        )
+
+
+class BloodthornReaper(Monster):
+    name = "Bloodthorn Reaper"
+    movement = {
+        "forward-left": 'any',
+        "forward-right": 'any',
+        "back-left": 1,
+        "back-right": 1
+    }
+    original_attack = 190
+    original_defense = 140
+
+    def __init__(self, owner):
+        super().__init__(
+            card_id='bloodthorn_reaper',
+            owner=owner,
+            attack=self.original_attack,
+            defense=self.original_defense,
+            image='/static/cards/bloodthorn_reaper.png',
+            mana=3
+        )
+
+class CelestialTitan(Monster):
+    name = "Celestial Titan"
+    movement = {
+        "forward": 'any',
+        "left": 'any',
+        "right": 'any',
+        "back": 'any'
+    }
+    original_attack = 200
+    original_defense = 250
+
+    def __init__(self, owner):
+        super().__init__(
+            card_id='celestial_titan',
+            owner=owner,
+            attack=self.original_attack,
+            defense=self.original_defense,
+            image='/static/cards/celestial_titan.png',
+            mana=6
+        )
+
+
+
+
+
 class BlazingRain(Sorcery):
     name = 'Blazing Rain'
     text = "Weaken all opponent's DEF by 50."
@@ -269,7 +338,7 @@ class NaturesResurgence(Sorcery):
 class MysticDraw(Sorcery):
     name = 'Mystic Draw'
     text = 'Draw 2 cards.'
-    activation_needs = ["left", "forward"]
+    activation_needs = ["left", "back"]
     def __init__(self, owner):
         super().__init__('mystic_draw', owner, image='/static/cards/mystic_draw.png', mana=2)
 
@@ -297,4 +366,20 @@ class DivineReset(Sorcery):
                 if card and isinstance(card, Monster):
                     game.graveyard[card.owner].append(card)
                     row[i] = None
+
+
+class ArcaneTempest(Sorcery):
+    name = 'Arcane Tempest'
+    text = "Reduce all opponent's ATK by 40."
+    activation_needs = ["right", "forward"]
+
+    def __init__(self, owner):
+        super().__init__('arcane_tempest', owner, image='/static/cards/arcane_tempest.png', mana=2)
+
+    def affect_board(self, game, target_pos, user_id):
+        for row in game.board:
+            for card in row:
+                if card and card.owner != user_id and isinstance(card, Monster):
+                    card.attack -= 40
+
 
