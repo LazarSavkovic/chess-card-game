@@ -52,7 +52,6 @@ class Monster(Card):
         dx, dy = tx - fx, ty - fy
 
         if dx == 0 and dy == 0:
-            print(card.name, 'failing move on line 55')
             return False  # no movement
 
         # Normalize deltas to direction unit vectors
@@ -60,20 +59,15 @@ class Monster(Card):
         dir_y = 0 if dy == 0 else dy // abs(dy)
 
         direction = Monster.resolve_direction(dir_x, dir_y, card.owner)
-        print(card.name, 'direction is', direction)
         if not direction:
-            print(card.name, 'failing move on line 64')
             return False
 
         allowed_range = card.__class__.movement.get(direction)
-        print(card.name, 'allowed_range is', allowed_range)
         if not allowed_range:
-            print(card.name, 'failing move on line 69')
             return False
 
         steps = max(abs(dx), abs(dy))
         if allowed_range != 'any' and steps > allowed_range:
-            print(card.name, 'failing move on line 74')
             return False
 
         # Optional: check for blocking pieces between start and end
@@ -112,6 +106,7 @@ class Monster(Card):
 #         return base
 #
 #
+
 class Sorcery(Card):
     activation_needs = [] # default: no constraints
     text = ''
@@ -142,9 +137,7 @@ class Sorcery(Card):
 def satisfies_activation_need(board, x, y, direction, owner):
     dx, dy = get_direction_offset(direction)
     tx, ty = x + dx, y + dy
-    print(f"Checking activation need for direction {direction} at x={x}, y={y} → tx={tx}, ty={ty}")
     if not (0 <= tx < len(board) and 0 <= ty < len(board[0])):
-        print('failing activation on line 144')
         return False
 
     opposite = {

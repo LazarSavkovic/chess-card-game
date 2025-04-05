@@ -23,7 +23,7 @@ class Bonecrawler(Monster):  # Formerly: Pawn
             mana=1
         )
 
-
+#
 class ShadowVine(Monster):  # Formerly: DiagonalRanger
     name = "Shadow Vine"
     movement = {
@@ -346,12 +346,12 @@ class MysticDraw(Sorcery):
         for _ in range(2):
             if game.decks[user_id]:
                 game.hands[user_id].append(game.decks[user_id].pop(0))
-
+#
 
 class DivineReset(Sorcery):
     name = 'Divine Reset'
     text = 'Destroy all monsters on the field.'
-    activation_needs = ["left", "right"]
+    activation_needs = ['left', 'right']
     def __init__(self, owner):
         super().__init__(
             card_id='divine_reset',
@@ -371,7 +371,7 @@ class DivineReset(Sorcery):
 class ArcaneTempest(Sorcery):
     name = 'Arcane Tempest'
     text = "Reduce all opponent's ATK by 40."
-    activation_needs = ["right", "forward"]
+    activation_needs = ['left', 'back-right']
 
     def __init__(self, owner):
         super().__init__('arcane_tempest', owner, image='/static/cards/arcane_tempest.png', mana=2)
@@ -383,3 +383,170 @@ class ArcaneTempest(Sorcery):
                     card.attack -= 40
 
 
+
+
+class TargetedDestruction(Sorcery):
+    name = "Targeted Destruction"
+    text = "Choose and destroy an enemy monster."
+    activation_needs = ['forward-right']
+
+    def __init__(self, owner):
+        super().__init__(
+            card_id="targeted_destruction",
+            owner=owner,
+            image="/static/cards/targeted_destruction.png",
+            mana=2
+        )
+
+    def requires_additional_input(self):
+        return True
+
+    def get_valid_targets(self, game, user_id):
+        return [
+            [x, y] for x, row in enumerate(game.board)
+            for y, card in enumerate(row)
+            if card and card.owner != user_id and isinstance(card, Monster)
+        ]
+
+    def resolve_with_input(self, game, user_id, pos):
+        x, y = pos
+        card = game.board[x][y]
+        if card and card.owner != user_id:
+            game.graveyard[card.owner].append(card)
+            game.board[x][y] = None
+            return True, 'Targeted Destruction has resolved'
+        else:
+            return False, 'Invalid target'
+
+
+class EmpoweringLight(Sorcery):
+    name = "Empowering Light"
+    text = "Choose a monster to increase its ATK by 50."
+    activation_needs = ['right', 'forward']  # Optional highlight rules
+
+    def __init__(self, owner):
+        super().__init__(
+            card_id="empowering_light",
+            owner=owner,
+            image="/static/cards/empowering_light.png",
+            mana=2
+        )
+
+    def requires_additional_input(self):
+        return True
+
+    def get_valid_targets(self, game, user_id):
+        return [
+            [x, y]
+            for x, row in enumerate(game.board)
+            for y, card in enumerate(row)
+            if card and isinstance(card, Monster)
+        ]
+
+    def resolve_with_input(self, game, user_id, pos):
+        x, y = pos
+        card = game.board[x][y]
+        if card:
+            card.attack += 50
+            return True, f"{card.name} gained 500 ATK!"
+        return False, "Invalid target"
+
+
+class FrostbiteCurse(Sorcery):
+    name = "Frostbite Curse"
+    text = "Choose a monster to decrease its DEF by 30."
+    activation_needs = ['forward']
+
+    def __init__(self, owner):
+        super().__init__(
+            card_id="frostbite_curse",
+            owner=owner,
+            image="/static/cards/frostbite_curse.png",
+            mana=2
+        )
+
+    def requires_additional_input(self):
+        return True
+
+    def get_valid_targets(self, game, user_id):
+        return [
+            [x, y]
+            for x, row in enumerate(game.board)
+            for y, card in enumerate(row)
+            if card and isinstance(card, Monster)
+        ]
+
+    def resolve_with_input(self, game, user_id, pos):
+        x, y = pos
+        card = game.board[x][y]
+        if card:
+            card.defense -= 30
+            return True, f"{card.name} lost 300 DEF!"
+        return False, "Invalid target"
+
+
+class MindSeize(Sorcery):
+    name = "Mind Seize"
+    text = "Choose an enemy monster to take control of it."
+    activation_needs = ['back', 'back-right']
+
+    def __init__(self, owner):
+        super().__init__(
+            card_id="mind_seize",
+            owner=owner,
+            image="/static/cards/mind_seize.png",
+            mana=3
+        )
+
+    def requires_additional_input(self):
+        return True
+
+    def get_valid_targets(self, game, user_id):
+        return [
+            [x, y]
+            for x, row in enumerate(game.board)
+            for y, card in enumerate(row)
+            if card and card.owner != user_id and isinstance(card, Monster)
+        ]
+
+    def resolve_with_input(self, game, user_id, pos):
+        x, y = pos
+        card = game.board[x][y]
+        if card and card.owner != user_id:
+            card.owner = user_id
+            return True, f"You took control of {card.name}!"
+        return False, "Invalid target"
+
+
+class PowerSurge(Sorcery):
+    name = "Power Surge"
+    text = "Choose a monster to double its ATK and DEF."
+    activation_needs = ['forward', 'left', 'back']
+
+    def __init__(self, owner):
+        super().__init__(
+            card_id="power_surge",
+            owner=owner,
+            image="/static/cards/power_surge.png",
+            mana=3
+        )
+
+    def requires_additional_input(self):
+        return True
+
+    def get_valid_targets(self, game, user_id):
+        return [
+            [x, y]
+            for x, row in enumerate(game.board)
+            for y, card in enumerate(row)
+            if card and isinstance(card, Monster)
+        ]
+
+    def resolve_with_input(self, game, user_id, pos):
+        x, y = pos
+        card = game.board[x][y]
+        if card:
+            card.attack *= 2
+            card.defense *= 2
+            return True, f"{card.name}'s ATK and DEF were doubled!"
+        return False, "Invalid target"

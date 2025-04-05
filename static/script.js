@@ -5,8 +5,7 @@ const endTurnBtn = document.getElementById("endTurnBtn")
 userH2.innerText = `User: ${userId}`
 const cellSize = 10;
 const pathParts = window.location.pathname.split('/'); 
-const roomId = pathParts[pathParts.length - 1]; // Get the last part of the path
-console.log('room id', roomId)
+const roomId = pathParts[pathParts.length - 1]; 
 const gameId = "demo"; // static for now
 const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
 const ws = new WebSocket(`${protocol}://${location.host}/game/${roomId}`);
@@ -39,11 +38,21 @@ function flipDirection(dir) {
 }
 
 
-
-
 endTurnBtn.onclick = () => {
   ws.send(JSON.stringify({ type: 'end-turn', user_id: userId }));
 };
+
+
+
+ws.onerror = (e) => {
+  console.error("[WebSocket Error]", e);
+};
+
+ws.onclose = (e) => {
+  console.warn("[WebSocket Closed]", e);
+};
+
+
 
 ws.onopen = () => {
   ws.send(JSON.stringify({ user_id: userId }));
@@ -54,28 +63,40 @@ function playSound(id) {
 }
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log(data.hand1, data.hand2);
+  console.log('[WebSocket] Incoming:', data);
 
+  // 🔑 Set user ID
   if (data.user_id && !userId) {
     userId = data.user_id;
     document.getElementById('userH2').innerText = `User: ${userId}`;
   }
 
-  const myGrave = document.getElementById('graveyard');
-  const oppGrave = document.getElementById('opponent-graveyard');
-  if (userId === '1') {
-    myGrave.style.borderColor = '#3399ff';
-    oppGrave.style.borderColor = 'orange';
-  } else {
-    myGrave.style.borderColor = 'orange';
-    oppGrave.style.borderColor = '#3399ff';
+  // 🎯 Handle special message: awaiting input
+  if (data.type === 'awaiting-input') {
+    const { card_id, slot, valid_targets } = data;
+    console.log(valid_targets)
+    notify('yellow', `Select a target for ${card_id}`);
+
+    window.pendingSorcery = {slot,  card_id };
+
+    valid_targets.forEach(([x, y]) => {
+      const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+      if (cell) {
+        cell.classList.add(userId === '1' ? 'can-move-blue' : 'can-move-orange');
+      }
+    });
+    return
+    
   }
 
-  if (!data.board) return;
+  // 🛑 Exit early only if not a game update message
+  if (!data.board && data.type !== 'game-over') return;
 
-  board = data.board;
-  if (turn != data.turn)
-    notify('green', data.turn == userId ? 'Your turn' : "Opponent's turn");
+  // 🎮 Update game state
+  if (data.board) board = data.board;
+  if (data.turn && data.turn !== turn) {
+    notify('green', data.turn === userId ? "Your turn" : "Opponent's turn");
+  }
   turn = data.turn;
 
   if (data.hand1) hand1 = data.hand1;
@@ -84,83 +105,65 @@ ws.onmessage = (event) => {
   if (data.deck_sizes) {
     const myCount = data.deck_sizes[userId];
     const opponentId = userId === '1' ? '2' : '1';
-    const opponentCount = data.deck_sizes[opponentId];
+    const oppCount = data.deck_sizes[opponentId];
+
     document.getElementById('deckCount').innerText = `${myCount} card${myCount === 1 ? '' : 's'}`;
-    document.getElementById('opponentDeckCount').innerText = `${opponentCount} card${opponentCount === 1 ? '' : 's'}`;
+    document.getElementById('opponentDeckCount').innerText = `${oppCount} card${oppCount === 1 ? '' : 's'}`;
   }
 
   if (data.mana) {
     mana = data.mana;
-    document.getElementById('manaH6').innerText = `Mana: ${mana[userId]}`;
     const opponentId = userId === '1' ? '2' : '1';
+
+    document.getElementById('manaH6').innerText = `Mana: ${mana[userId]}`;
     document.getElementById('opponentManaH6').innerText = `Opponent Mana: ${mana[opponentId]}`;
   }
 
   if (data.graveyard) {
-    if (data.graveyard['1']) graveyard1 = data.graveyard['1'];
-    if (data.graveyard['2']) graveyard2 = data.graveyard['2'];
+    graveyard1 = data.graveyard['1'] || graveyard1;
+    graveyard2 = data.graveyard['2'] || graveyard2;
   }
 
-  // 🔊 Play sounds
+  // 🔊 Sound effects
   if (data.success) {
     if (data.info?.includes("summoned")) {
       playSound("spawnSound");
-      if (data.to) {
-        lastSummonedPos = data.to.join("-");
-      } else {
-        lastSummonedPos = null;
-      }
+      lastSummonedPos = data.to ? data.to.join("-") : null;
     } else {
       lastSummonedPos = null;
     }
 
-    if (data.type === 'game-over') {
-      if (data.game_over.result === 'victory') {
-        notify("green", "🏆 Victory! You win!");
-      } else if (data.game_over.result === 'defeat') {
-        notify("red", "💀 You lose!");
-      }
-    
-      // Optional: disable interactions
-      document.getElementById("endTurnBtn").disabled = true;
-      boardEl.style.pointerEvents = 'none';
-    }
-    
-
-    if (data.info?.includes("Move successful")) {
-      playSound("moveSound");
-    }
-
-    if (data.info?.includes("defeated") || data.info?.includes("killed")) {
-      playSound("deathSound");
-    }
-
-    if (data.info?.includes("attacked directly")) {
-      playSound("deathSound");
-    }
-
-    // 🪄 Optional: sound for sorcery (if using a "magicSound")
-    if (data.info?.includes("activated") || data.info?.includes("cast")) {
-      playSound("spawnSound"); // or use "magicSound" if you have one
-    }
+    if (data.info?.includes("Move successful")) playSound("moveSound");
+    if (data.info?.includes("defeated") || data.info?.includes("killed")) playSound("deathSound");
+    if (data.info?.includes("attacked directly")) playSound("deathSound");
+    if (data.info?.includes("activated") || data.info?.includes("cast")) playSound("spawnSound");
   }
 
-  // 🖼️ Update visuals
+  // 🏁 Handle game over
+  if (data.type === 'game-over') {
+    const result = data.game_over?.result;
+    if (result === 'victory') notify("green", "🏆 Victory! You win!");
+    if (result === 'defeat') notify("red", "💀 You lose!");
+    document.getElementById("endTurnBtn").disabled = true;
+    boardEl.style.pointerEvents = 'none';
+  }
+
+  // 🖼️ Render updates
   renderHand();
   renderOpponentHand();
   renderBoard();
   renderGraveyards();
 
-  // 🔁 Moves left
   if (data.moves_left !== undefined) {
     document.getElementById('movesLeft').innerText = `Moves left: ${data.moves_left}`;
   }
 
-  // ⚠️ Error handling
+  // ⚠️ Error message
   if (data.info && !data.success) {
     notify('red', data.info);
   }
 };
+
 
 function renderHand() {
   const handDiv = document.getElementById('hand');
@@ -465,7 +468,6 @@ function showCardPreview(card) {
     stats.innerText = `ATK: ${card.attack} / DEF: ${card.defense}`;
     bottom.appendChild(stats);
   }
-  console.log(card)
 
   if (card.text) {
 
@@ -582,7 +584,23 @@ function clearMoveHighlights() {
 }
 
 
-function handleClick(x, y, cell) {
+async function handleClick(x, y, cell) {
+
+  if (window.pendingSorcery) {
+    const { slot } = window.pendingSorcery;
+    ws.send(JSON.stringify({
+      type: 'resolve-sorcery',
+      slot: slot,
+      target: [x, y]
+    }));
+  
+    window.pendingSorcery = null;
+    clearMoveHighlights();
+    return;
+  }
+  
+
+
   const hand = userId === '1' ? hand1 : hand2;
   const selectedCard = hand[selectedHandIndex];
 
@@ -604,8 +622,8 @@ function handleClick(x, y, cell) {
           `Spend ${selectedCard.mana} mana to summon ${selectedCard.name}?`,
           "Yes, summon!",
           "Cancel",
-          () => {
-            ws.send(JSON.stringify({
+           () => {
+             ws.send(JSON.stringify({
               type: 'summon',
               user_id: userId,
               slot: selectedHandIndex,
