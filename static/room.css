@@ -130,6 +130,7 @@ body {
 
 .cell {
   display: flex;
+  padding: 3px;
   align-items: center;
   justify-content: center;
   font-size: 24px;
@@ -376,9 +377,6 @@ h5 {
   bottom: -230px; /* float below the board */
 }
 
-.hand-card {
-  transition: transform 0.2s ease;
-}
 
 /* Hover grow */
 .hand-card:hover {
@@ -651,4 +649,18 @@ h5 {
 
 .flipped-image {
   transform: scaleY(-1);
+}
+
+.card-frame, .hand-card {
+  will-change: transform;
+  transform: none !important;
+}
+
+.hand-card.hovered {
+  transform: scale(1.1) !important;
+}
+
+
+.card-frame {
+  z-index: 0; /* normal layer */
 }

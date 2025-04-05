@@ -148,11 +148,64 @@ ws.onmessage = (event) => {
     boardEl.style.pointerEvents = 'none';
   }
 
+// STEP 1: Capture previous positions
+const previousCards = {};
+document.querySelectorAll('[id^="card-"]').forEach(el => {
+  previousCards[el.id] = el.getBoundingClientRect();
+});
+
   // 🖼️ Render updates
   renderHand();
   renderOpponentHand();
   renderBoard();
   renderGraveyards();
+
+// STEP 2: After DOM updates
+requestAnimationFrame(() => {
+  document.querySelectorAll('[id^="card-"]').forEach(el => {
+
+
+    
+    const newRect = el.getBoundingClientRect();
+    const oldRect = previousCards[el.id];
+    if (!oldRect) return;
+
+    const dx = oldRect.left - newRect.left;
+    const dy = oldRect.top - newRect.top;
+
+    // Clone the element for animation
+    const clone = el.cloneNode(true);
+    const parent = el.parentNode;
+        // Hide the real card while the clone animates
+el.style.visibility = 'hidden';
+    const { width, height } = newRect;
+
+    Object.assign(clone.style, {
+      position: "absolute",
+      width: `${width}px`,
+      height: `${height}px`,
+      top: `${oldRect.top}px`,
+      left: `${oldRect.left}px`,
+      margin: 0,
+      zIndex: 9999,
+      pointerEvents: "none",
+    });
+
+    document.body.appendChild(clone);
+
+    gsap.to(clone, {
+      top: newRect.top,
+      left: newRect.left,
+      duration: 0.4,
+      ease: "power2.out",
+      onComplete: () => {
+        clone.remove();
+        el.style.visibility = 'visible';
+        el.style.transform = ''; // 🔥 clear inline transform to restore hover effect
+      }
+    });
+  });
+});
 
   if (data.moves_left !== undefined) {
     document.getElementById('movesLeft').innerText = `Moves left: ${data.moves_left}`;
@@ -180,11 +233,16 @@ function renderHand() {
     cardEl.style.position = 'relative';
     cardEl.style.color = 'white';
     cardEl.style.textShadow = '0 0 4px black';
-
+    cardEl.id = `card-${card.id}`;
     if (card.owner === userId) {
       // Add shared preview on hover
       cardEl.onmouseenter = () => {
         showCardPreview(card);
+        cardEl.classList.add('hovered');
+      };
+      
+      cardEl.onmouseleave = () => {
+        cardEl.classList.remove('hovered');
       };
 
       // 👾 Monster Card
@@ -285,6 +343,7 @@ function renderGraveyards() {
     cardDiv.className = 'grave-card';
     cardDiv.style.backgroundImage = `url(${card.image})`;
     cardDiv.title = card.name;
+    cardDiv.id = `card-${card.id}`;
     myGraveyard.appendChild(cardDiv);
   });
 
@@ -293,6 +352,7 @@ function renderGraveyards() {
     cardDiv.className = 'grave-card';
     cardDiv.style.backgroundImage = `url(${card.image})`;
     cardDiv.title = card.name;
+    cardDiv.id = `card-${card.id}`;
     oppGraveyard.appendChild(cardDiv);
   });
 }
@@ -415,6 +475,7 @@ function renderBoard() {
           statsDiv.appendChild(defenseSpan);
         }
         
+        cardFrame.id = `card-${card.id}`;
 
         cell.appendChild(cardFrame);
 
