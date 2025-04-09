@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Enhanced Card Design</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #bcb4a9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      width: 300px;
+      height: 420px;
+      background: #2c1d18; /* rich dark brown */
+      padding: 2.4% 2.2%;
+      position: relative;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+    }
+
+    .zone-wrapper {
+      position: absolute;
+      top: 0.8%;
+      left: 1%;
+      right: 1%;
+      bottom: 0.8%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .zone-wrapper::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url('https://www.transparenttextures.com/patterns/dark-mosaic.png') no-repeat center center;
+      background-size: 100% 100%;
+      opacity: 0.15;
+      mix-blend-mode: multiply;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .zone {
+      position: absolute;
+    }
+
+    /* Arrow layout */
+
+    .arrow-top,
+    .arrow-bottom {
+      width: 100%;
+      height: 4%;
+    }
+
+    .arrow-left,
+    .arrow-right {
+      height: 100%;
+      width: 5%;
+    }
+
+    .arrow-top-left,
+    .arrow-top-right,
+    .arrow-bottom-left,
+    .arrow-bottom-right {
+      width: 40%;
+      height: 40%;
+    }
+
+    /* Clipping */
+
+    .arrow-top {
+      clip-path: polygon(9% 96%, 50% 6%, 91% 96%);
+    }
+
+    .arrow-bottom {
+      bottom: 0;
+      clip-path: polygon(9% 4%, 50% 94%, 91% 4%);
+    }
+
+    .arrow-left {
+      left: 0;
+      clip-path: polygon(96% 6%, 4% 50%, 96% 94%);
+    }
+
+    .arrow-right {
+      right: 0;
+      clip-path: polygon(4% 6%, 96% 50%, 4% 94%);
+    }
+
+    .arrow-top-left {
+      top: 0;
+      left: 0;
+      clip-path: polygon(0% 0%, 100% 0%, 10% 8%, 0% 100%);
+    }
+
+    .arrow-top-right {
+      top: 0;
+      right: 0;
+      clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 90% 8%);
+    }
+
+    .arrow-bottom-left {
+      bottom: 0;
+      left: 0;
+      clip-path: polygon(0% 0%, 10% 92%, 100% 100%, 0% 100%);
+    }
+
+    .arrow-bottom-right {
+      bottom: 0;
+      right: 0;
+      clip-path: polygon(90% 92%, 100% 0%, 100% 100%, 0% 100%);
+    }
+
+    /* THEME CLASSES */
+
+    .gray-class {
+      background-color: #66666e;
+      background-image: repeating-linear-gradient(135deg,
+        rgba(255, 255, 255, 0.04) 0px,
+        rgba(255, 255, 255, 0.04) 2px,
+        transparent 2px,
+        transparent 4px);
+    }
+
+    .orange-class {
+      background-color: #c97e2d;
+      background-image: repeating-linear-gradient(135deg,
+        rgba(255, 215, 120, 0.18) 0px,
+        rgba(255, 215, 120, 0.18) 2px,
+        transparent 2px,
+        transparent 4px);
+    }
+
+    .red-class {
+      background-color: #7e2b1a;
+      background-image: repeating-linear-gradient(135deg,
+        rgba(255, 120, 100, 0.12) 0px,
+        rgba(255, 120, 100, 0.12) 2px,
+        transparent 2px,
+        transparent 4px);
+    }
+
+    .card-content {
+      width: 100%;
+      height: 100%;
+      background: #f0e1c3;
+      z-index: 1;
+      position: relative;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="zone-wrapper">
+      <!-- Assign your desired theme classes here -->
+      <div class="zone arrow-top orange-class"></div>
+      <div class="zone arrow-bottom gray-class"></div>
+      <div class="zone arrow-left gray-class"></div>
+      <div class="zone arrow-right orange-class"></div>
+
+      <div class="zone arrow-top-left red-class"></div>
+      <div class="zone arrow-top-right red-class"></div>
+      <div class="zone arrow-bottom-left orange-class"></div>
+      <div class="zone arrow-bottom-right red-class"></div>
+    </div>
+
+    <div class="card-content">
+      <!-- Your main card content goes here -->
+    </div>
+  </div>
+
+</body>
+</html>

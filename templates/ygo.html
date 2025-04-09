@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dynamic Card Types</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: 'Georgia', serif;
+    }
+
+    .play-card {
+      width: 300px;
+      aspect-ratio: 1 / 1.43;
+      font-size: 14px;
+      border: 0.4em solid;
+      border-radius: 0.6em;
+      box-shadow: 0 0 0.75em rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .play-card .card-content {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .play-card .title-bar {
+      padding: 0.4em 0.6em;
+      font-weight: bold;
+      font-size: 1em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .play-card .mana-cost {
+      font-size: 0.9em;
+    }
+
+
+    .play-card .card-image {
+      width: 93%;
+      height: 50%;
+      background: linear-gradient(to bottom right, #999, #ccc);
+      border: 0.15em inset #3e1d13;
+      margin: 0.4em auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8em;
+    }
+
+    .play-card .type-line {
+      text-align: center;
+      font-size: 0.85em;
+      background: #3a2315;
+      padding: 0.3em;
+      font-style: italic;
+      border-top: 0.05em solid #5d3a26;
+      color: #eee;
+    }
+
+    .play-card .rules-text {
+      flex: 1;
+      padding: 0.6em 0.8em;
+      font-size: 0.75em;
+      background: #f5e8da;
+      color: #111;
+      line-height: 1.3;
+    }
+
+    .play-card .stats-bar {
+      padding: 0.4em 0.8em;
+      font-size: 0.8em;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-around;
+      height: 1rem;
+    }
+
+    .play-card .arrow {
+      position: absolute;
+      width: 1em;
+      height: 1em;
+      background: #fff;
+      opacity: 0.25;
+      transform: rotate(45deg);
+    }
+
+    .play-card .arrow.top    { top: -0.5em; left: 50%; transform: translateX(-50%) rotate(45deg); }
+    .play-card .arrow.bottom { bottom: -0.5em; left: 50%; transform: translateX(-50%) rotate(45deg); }
+    .play-card .arrow.left   { left: -0.5em; top: 50%; transform: translateY(-50%) rotate(45deg); }
+    .play-card .arrow.right  { right: -0.5em; top: 50%; transform: translateY(-50%) rotate(45deg); }
+    .play-card .arrow.tl     { top: -0.5em; left: -0.5em; transform: scale(1.6) rotate(45deg); }
+    .play-card .arrow.tr     { top: -0.5em; right: -0.5em; transform: scale(1.6) rotate(45deg); }
+    .play-card .arrow.bl     { bottom: -0.5em; left: -0.5em; transform: scale(1.6) rotate(45deg); }
+    .play-card .arrow.br     { bottom: -0.5em; right: -0.5em; transform: scale(1.6) rotate(45deg); }
+
+    .play-card .arrow.yellow {
+      background: radial-gradient(circle at center, #ffe249, #e0b300);
+      opacity: 0.9;
+    }
+
+    .play-card .arrow.red {
+      background: radial-gradient(circle at center, #ff4747, #b60000);
+      opacity: 0.9;
+    }
+
+    .play-card .arrow.white {
+      background: radial-gradient(circle at center, #f7f7f7, #ffffff);
+      opacity: 0.9;
+    }
+
+    /* === THEMES === */
+
+    /* MONSTER */
+    .monster-card {
+      background: #4b2e1e;
+      border-color: #c05a2f;
+    }
+
+    .monster-card .title-bar,
+    .monster-card .stats-bar {
+      background: linear-gradient(to right, #e6772e, #f8b35c);
+      color: #2e1a0e;
+    }
+
+    .monster-card .mana-cost {
+      color: #b80000;
+    }
+
+
+    /* SORCERY */
+    .sorcery-card {
+      background: #3a234e;
+      border-color: #581b71;
+    }
+
+    .sorcery-card .title-bar,
+    .sorcery-card .stats-bar {
+      background: linear-gradient(to right, #8e44ad, #b67cf4);
+      color: #fff;
+    }
+
+    .sorcery-card .mana-cost {
+      color: #e6ccff;
+    }
+
+
+    /* LAND */
+    .land-card {
+      background: #2f4b2e;
+      border-color: #18751c;
+    }
+
+    .land-card .title-bar,
+    .land-card .stats-bar {
+      background: linear-gradient(to right, #4caf50, #a2d39c);
+      color: #1a1a1a;
+    }
+
+    .land-card .mana-cost {
+      color: #2e7d32;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Example: MONSTER -->
+  <div class="play-card monster-card">
+    <div class="card-content">
+      <div class="arrow top red"></div>
+      <div class="arrow bottom"></div>
+      <div class="arrow left yellow"></div>
+      <div class="arrow right yellow"></div>
+      <div class="arrow tl"></div>
+      <div class="arrow tr"></div>
+      <div class="arrow bl"></div>
+      <div class="arrow br"></div>
+
+      <div class="title-bar">
+        Emberfang Wyrm
+        <div class="mana-cost">🩸 4</div>
+      </div>
+
+      <div class="card-image">
+        [ Monster Art ]
+      </div>
+
+      <div class="type-line">
+        Monster – Dragon / Fire
+      </div>
+
+      <div class="rules-text">
+        When Emberfang Wyrm enters the battlefield, deal 2 damage to all enemy monsters.<br><br>
+        <em>"Its breath is lava, and its wings bring storms."</em>
+      </div>
+
+      <div class="stats-bar">
+        <span>ATK: 2200</span>
+        <span>DEF: 1400</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="play-card sorcery-card">
+    <div class="card-content">
+      <div class="arrow top"></div>
+      <div class="arrow bottom"></div>
+      <div class="arrow left white"></div>
+      <div class="arrow right white"></div>
+      <div class="arrow tl"></div>
+      <div class="arrow tr"></div>
+      <div class="arrow bl"></div>
+      <div class="arrow br"></div>
+
+      <div class="title-bar">
+        Emberfang Wyrm
+        <div class="mana-cost">🩸 4</div>
+      </div>
+
+      <div class="card-image">
+        [ Monster Art ]
+      </div>
+
+      <div class="type-line">
+        Monster – Dragon / Fire
+      </div>
+
+      <div class="rules-text">
+        When Emberfang Wyrm enters the battlefield, deal 2 damage to all enemy monsters.<br><br>
+        <em>"Its breath is lava, and its wings bring storms."</em>
+      </div>
+
+      <div class="stats-bar">
+      </div>
+    </div>
+  </div>
+
+  <div class="play-card land-card">
+    <div class="card-content">
+      <div class="arrow top"></div>
+      <div class="arrow bottom"></div>
+      <div class="arrow left white"></div>
+      <div class="arrow right white"></div>
+      <div class="arrow tl"></div>
+      <div class="arrow tr"></div>
+      <div class="arrow bl"></div>
+      <div class="arrow br"></div>
+
+      <div class="title-bar">
+        Emberfang Wyrm
+        <div class="mana-cost">🩸 4</div>
+      </div>
+
+      <div class="card-image">
+        [ Monster Art ]
+      </div>
+
+      <div class="type-line">
+        Monster – Dragon / Fire
+      </div>
+
+      <div class="rules-text">
+        When Emberfang Wyrm enters the battlefield, deal 2 damage to all enemy monsters.<br><br>
+        <em>"Its breath is lava, and its wings bring storms."</em>
+      </div>
+
+      <div class="stats-bar">
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

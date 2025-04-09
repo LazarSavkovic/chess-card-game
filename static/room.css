@@ -639,7 +639,7 @@ h5 {
 }
 
 
-.card-image {
+.cell .card-image {
   position: absolute;
   top: 0;
   left: 0;
@@ -686,4 +686,168 @@ h5 {
 
 .center-counter.orange {
   color: orange;
+}
+
+
+
+
+
+
+.play-card {
+  width: 300px;
+  aspect-ratio: 1 / 1.43;
+  font-size: 14px;
+  border: 0.4em solid;
+  border-radius: 0.6em;
+  box-shadow: 0 0 0.75em rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+.play-card .card-content {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.play-card .title-bar {
+  padding: 0.4em 0.6em;
+  font-weight: bold;
+  font-size: 1em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.play-card .mana-cost {
+  font-size: 0.9em;
+}
+
+
+.play-card .card-image {
+  width: 93%;
+  height: 50%;
+  background: linear-gradient(to bottom right, #999, #ccc);
+  border: 0.15em inset #3e1d13;
+  margin: 0.4em auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+}
+
+.play-card .type-line {
+  text-align: center;
+  font-size: 0.85em;
+  background: #3a2315;
+  padding: 0.3em;
+  font-style: italic;
+  border-top: 0.05em solid #5d3a26;
+  color: #eee;
+}
+
+.play-card .rules-text {
+  flex: 1;
+  padding: 0.6em 0.8em;
+  font-size: 0.75em;
+  background: #f5e8da;
+  color: #111;
+  line-height: 1.3;
+}
+
+.play-card .stats-bar {
+  padding: 0.4em 0.8em;
+  font-size: 0.8em;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-around;
+  height: 1rem;
+}
+
+.play-card .arrow {
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  background: #fff;
+  opacity: 0.25;
+  transform: rotate(45deg);
+}
+
+.play-card .arrow.forward    { top: -0.5em; left: 50%; transform: translateX(-50%) rotate(45deg); }
+.play-card .arrow.back { bottom: -0.5em; left: 50%; transform: translateX(-50%) rotate(45deg); }
+.play-card .arrow.left   { left: -0.5em; top: 50%; transform: translateY(-50%) rotate(45deg); }
+.play-card .arrow.right  { right: -0.5em; top: 50%; transform: translateY(-50%) rotate(45deg); }
+.play-card .arrow.forward-left  { top: -0.5em; left: -0.5em; transform: scale(1.6) rotate(45deg); }
+.play-card .arrow.forward-right  { top: -0.5em; right: -0.5em; transform: scale(1.6) rotate(45deg); }
+.play-card .arrow.back-left { bottom: -0.5em; left: -0.5em; transform: scale(1.6) rotate(45deg); }
+.play-card .arrow.back-right  { bottom: -0.5em; right: -0.5em; transform: scale(1.6) rotate(45deg); }
+
+.play-card .arrow.yellow {
+  background: radial-gradient(circle at center, #ffe249, #e0b300);
+  opacity: 0.9;
+}
+
+.play-card .arrow.red {
+  background: radial-gradient(circle at center, #ff4747, #b60000);
+  opacity: 0.9;
+}
+
+.play-card .arrow.white {
+  background: radial-gradient(circle at center, #f7f7f7, #ffffff);
+  opacity: 0.9;
+}
+
+/* === THEMES === */
+
+/* MONSTER */
+.monster-card {
+  background: #2d1a12;
+  border-color: #7e3f1c;
+}
+
+.monster-card .title-bar,
+.monster-card .stats-bar {
+  background: linear-gradient(to right, #8c3a16, #b1602d);
+  color: #e7d0b2;
+}
+
+.monster-card .mana-cost {
+  color: #cc3d00;
+}
+
+
+/* SORCERY */
+.sorcery-card {
+  background: #261a33;
+  border-color: #5a2a73;
+}
+
+.sorcery-card .title-bar,
+.sorcery-card .stats-bar {
+  background: linear-gradient(to right, #6e3f99, #8f7bb0);
+  color: #e5dbf0;
+}
+
+.sorcery-card .mana-cost {
+  color: #cabbed;
+}
+
+
+
+/* LAND */
+.land-card {
+  background: #1e2d1e;
+  border-color: #355c2a;
+}
+
+.land-card .title-bar,
+.land-card .stats-bar {
+  background: linear-gradient(to right, #3f704d, #6a9f6b);
+  color: #d5e5d1;
+}
+
+.land-card .mana-cost {
+  color: #7ba86c;
 }

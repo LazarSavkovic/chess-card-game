@@ -563,73 +563,82 @@ function showCardPreview(card) {
   const preview = document.getElementById('cardPreview');
   preview.innerHTML = '';
 
-  const wrapper = document.createElement('div');
-  wrapper.className = 'card-preview-frame';
+  const cardEl = document.createElement('div');
+  cardEl.classList.add('play-card');
 
-  const name = document.createElement('div');
-  name.className = 'card-preview-name';
-  name.innerText = card.name;
-
-  const image = document.createElement('div');
-  image.className = 'card-preview-image';
-  image.style.backgroundImage = `url(${card.image})`;
-
-  const bottom = document.createElement('div');
-  bottom.className = 'card-preview-bottom';
-
-  if (card.attack && card.defense) {
-
-    const stats = document.createElement('div');
-    stats.className = 'card-preview-stats';
-    stats.innerText = `ATK: ${card.attack} / DEF: ${card.defense}`;
-    bottom.appendChild(stats);
+  // Add theme class based on type
+  if (card.type === 'monster') {
+    cardEl.classList.add('monster-card');
+  } else if (card.type === 'sorcery') {
+    cardEl.classList.add('sorcery-card');
+  } else if (card.type === 'land') {
+    cardEl.classList.add('land-card');
   }
 
-  if (card.text) {
+  const content = document.createElement('div');
+  content.className = 'card-content';
 
-    const text = document.createElement('div');
-    text.className = 'card-preview-text';
-    text.innerText = card.text;
-    bottom.appendChild(text);
-  }
-
-  const mana = document.createElement('div');
-  mana.className = 'card-preview-mana';
-  mana.innerText = `Mana: ${card.mana || 0}`;
-
-  const arrows = document.createElement('div');
-  arrows.className = 'card-preview-arrows';
-
+  // 🔺 Directional Arrows (Monster = red/yellow, Sorcery/Land = white)
   if (card.movement) {
     for (const dir in card.movement) {
       if (card.movement[dir]) {
         const arrow = document.createElement('div');
-        arrow.className = `movement movement-${dir}`;
-        arrow.style.borderColor = card.movement[dir] === 'any' ? 'red' : 'lime';
-        arrows.appendChild(arrow);
+        arrow.className = `arrow ${dir}`;
+        arrow.classList.add(card.movement[dir] === 'any' ? 'red' : 'yellow');
+        content.appendChild(arrow);
       }
     }
-  }
-  else if (card.type === 'sorcery' && Array.isArray(card.activation_needs)) {
+  } else if ((card.type === 'sorcery' || card.type === 'land') && Array.isArray(card.activation_needs)) {
     for (const dir of card.activation_needs) {
       const arrow = document.createElement('div');
-      arrow.className = `movement movement-${dir}`;
-      arrow.style.borderColor = 'white';
-      arrows.appendChild(arrow);
+      arrow.className = `arrow ${dir} white`;
+      content.appendChild(arrow);
     }
   }
-  
 
-  
-  bottom.appendChild(mana);
-  bottom.appendChild(arrows);
+  // 🧠 Title + Mana Cost
+  const title = document.createElement('div');
+  title.className = 'title-bar';
+  title.innerHTML = `${card.name}<div class="mana-cost">🩸 ${card.mana || 0}</div>`;
+  content.appendChild(title);
 
-  wrapper.appendChild(name);
-  wrapper.appendChild(image);
-  wrapper.appendChild(bottom);
+  // 🎨 Image Area
+  const image = document.createElement('div');
+  image.className = 'card-image';
+  if (card.image) {
+    image.style.backgroundImage = `url(${card.image})`;
+    image.style.backgroundSize = 'cover';
+    image.style.backgroundPosition = 'center';
+  }
+  content.appendChild(image);
 
-  preview.appendChild(wrapper);
+  // 🧬 Type Line
+  const typeLine = document.createElement('div');
+  typeLine.className = 'type-line';
+  typeLine.innerText = card.subtype || (card.type ? `(${card.type})` : '');
+  content.appendChild(typeLine);
+
+  // 📜 Rules Text
+  const rules = document.createElement('div');
+  rules.className = 'rules-text';
+  rules.innerText = card.text || card.description || 'No effect.';
+  content.appendChild(rules);
+
+  // 🛡️ Stats (Only for Monsters)
+  const stats = document.createElement('div');
+  stats.className = 'stats-bar';
+  if (card.attack && card.defense) {
+    stats.innerHTML = `<span>ATK: ${card.attack}</span><span>DEF: ${card.defense}</span>`;
+  } else {
+    stats.innerHTML = `<span></span><span></span>`;
+  }
+  content.appendChild(stats);
+
+  // 🧩 Assemble
+  cardEl.appendChild(content);
+  preview.appendChild(cardEl);
 }
+
 
 
 
