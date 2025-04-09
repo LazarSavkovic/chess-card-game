@@ -5,13 +5,15 @@
   <title>Chess Game</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='room.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
-
-
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, orientation=landscape">
 
 </head>
 
 <body>
+  <div id="rotatePrompt" style="display:none; position:fixed; inset:0; background:black; color:white; font-size:24px; z-index:9999; justify-content:center; align-items:center; text-align:center;">
+    🔄 Please rotate your device to landscape mode
+  </div>
+  
   
   <div id="notification-container"></div>
   <div id="confirmation-overlay" style="display: none;">

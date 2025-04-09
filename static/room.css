@@ -4,6 +4,8 @@
   box-sizing: border-box;
 }
 
+
+
 body {
   font-family: sans-serif;
   display: flex;
@@ -89,7 +91,7 @@ body {
 }
 
 .right-sidebar h2 {
-  font-size: 26px;
+  font-size: 1.35vw;
   margin: 0;
   color: #ffd700;
   text-shadow: 1px 1px 2px black;
@@ -98,13 +100,13 @@ body {
 .right-sidebar h5,
 .right-sidebar h6 {
   margin: 0;
-  font-size: 19px;
+  font-size: 1vw;
   color: #fefefe;
 }
 
 #endTurnBtn {
-  margin-top: 8px;
-  padding: 8px 16px;
+  margin-top: 0.5vw;
+  padding: 0.5em 1em;
   background: linear-gradient(to bottom, #444, #222);
   border: 1px solid gold;
   color: gold;
@@ -133,7 +135,7 @@ body {
   padding: 3px;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 1vw;
   font-weight: bold;
   cursor: pointer;
   position: relative; /* Add this */
@@ -216,7 +218,7 @@ h5 {
 .movement {
   z-index: 2;
   position: relative; /* to stay above overlay */
-  font-size: 12px;
+  font-size: 0.65vw;
 }
 
 .white-card {
@@ -236,11 +238,10 @@ h5 {
   border-style: solid;
   opacity: 0.8;
 }
-
 .movement-forward {
   top: 0;
   left: 50%;
-  border-width: 10px 8px 0 8px;
+  border-width: 0.6vw 0.4vw 0 0.4vw;
   border-color: red transparent transparent transparent;
   transform: translateX(-50%);
 }
@@ -248,7 +249,7 @@ h5 {
 .movement-back {
   bottom: 0;
   left: 50%;
-  border-width: 0 8px 10px 8px;
+  border-width: 0 0.4vw 0.6vw 0.4vw;
   border-color: transparent transparent red transparent;
   transform: translateX(-50%);
 }
@@ -256,7 +257,7 @@ h5 {
 .movement-left {
   left: 0;
   top: 50%;
-  border-width: 8px 0 8px 10px;
+  border-width: 0.4vw 0 0.4vw 0.6vw;
   border-color: transparent transparent transparent red;
   transform: translateY(-50%);
 }
@@ -264,7 +265,7 @@ h5 {
 .movement-right {
   right: 0;
   top: 50%;
-  border-width: 8px 10px 8px 0;
+  border-width: 0.4vw 0.6vw 0.4vw 0;
   border-color: transparent red transparent transparent;
   transform: translateY(-50%);
 }
@@ -272,30 +273,31 @@ h5 {
 .movement-forward-left {
   top: 0;
   left: 0;
-  border-width: 10px 0 0 10px;
+  border-width: 0.6vw 0 0 0.6vw;
   border-color: red transparent transparent transparent;
 }
 
 .movement-forward-right {
   top: 0;
   right: 0;
-  border-width: 10px 10px 0 0;
+  border-width: 0.6vw 0.6vw 0 0;
   border-color: red transparent transparent transparent;
 }
 
 .movement-back-left {
   bottom: 0;
   left: 0;
-  border-width: 0 0 10px 10px;
+  border-width: 0 0 0.6vw 0.6vw;
   border-color: transparent transparent red transparent;
 }
 
 .movement-back-right {
   bottom: 0;
   right: 0;
-  border-width: 0 10px 10px 0;
+  border-width: 0 0.6vw 0.6vw 0;
   border-color: transparent red transparent transparent;
 }
+
 
 .card-frame {
   position: relative;
@@ -306,9 +308,9 @@ h5 {
   top: -1.2em;
   background: #222;
   color: white;
-  padding: 2px 6px;
-  font-size: 10px;
-  border-radius: 4px;
+  padding: 0.15vw 0.5vw;
+  font-size: 0.625rem;
+  border-radius: 0.25em;
   display: none;
   white-space: nowrap;
   z-index: 10;
@@ -335,34 +337,34 @@ h5 {
 #hand,
 #opponent-hand {
   display: flex;
-  gap: 12px;
-  margin: 16px;
+  gap: 1vw;
+  margin: 1vw;
   justify-content: center;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  gap: 12px;
+  gap: 1vw;
   justify-content: center;
   z-index: 5;
 }
 
 #opponent-hand .hand-card {
-  width: 80px;
-  height: 100px;
-
+  height: 12vh;
+  width: auto;
+  aspect-ratio: 4 / 5;
 }
 
 .hand-card {
-  width: 160px;
-  height: 200px;
+  width: 10vw;
+  height: 12.5vw;
   border: 2px solid #333;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 0.65vw;
   text-align: center;
-  padding: 4px;
+  padding: 0.3vw;
   white-space: pre-line;
   cursor: pointer;
   background: white;
@@ -370,11 +372,11 @@ h5 {
 
 #opponent-hand {
 
-  top: -165px;
+  top: -9vw;
 }
 
 #hand {
-  bottom: -230px; /* float below the board */
+  bottom: -14vw;
 }
 
 
@@ -412,7 +414,7 @@ h5 {
 
 .card-preview-frame {
   position: relative;
-  height: auto;
+  height: 15vw;
   background: #222;
   color: white;
   font-family: serif;
@@ -421,16 +423,18 @@ h5 {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  align-items: center;
   box-shadow: 0 0 8px #000;
+  aspect-ratio: 4 / 5;
 }
 
 .card-preview-image {
-  height: 270px;
+  height: 9vw;
   background-size: cover;
   background-position: center;
   border-bottom: 1px solid #444;
   aspect-ratio: 1 / 1;
-  width: 100%;
+  width: 9vw;
 }
 
 #cardPreview {
@@ -441,11 +445,11 @@ h5 {
 
 .card-preview-name {
   font-family: 'Georgia', serif;
-  font-size: 16px;
+  font-size: 0.85vw;
   font-weight: bold;
   color: gold;
   background: #111;
-  padding: 6px;
+  padding: 0.5vw;
   text-align: center;
   border-bottom: 1px solid #444;
 }
@@ -471,7 +475,7 @@ h5 {
   inset: 0;
   pointer-events: none;
   z-index: 20;
-  border-radius: 4px;
+  border-radius: 0.25em;
 }
 
 .can-move-blue {
@@ -493,25 +497,25 @@ h5 {
 .graveyard {
   border: 2px dashed gray;
   border-radius: 8px;
-  padding: 6px;
-  min-height: 140px;
-  width: 80px;
+  padding: 0.5vw;
+  min-height: 20vh;
+  width: 6vw;
   display: flex;
   flex-direction: column;
   align-items: center;
   background: rgba(0, 0, 0, 0.25);
-  margin-bottom: 16px;
+  margin-bottom: 1vw;
   color: white;
-  font-size: 12px;
+  font-size: 0.65vw;
 }
 
 .graveyard .grave-card {
-  width: 40px;
-  height: 50px;
+  width: 3vw;
+  height: 4vw;
   margin: 4px 0;
   background-size: cover;
   background-position: center;
-  border-radius: 4px;
+  border-radius: 0.25em;
   border: 1px solid #555;
   opacity: 0.8;
 }
@@ -533,10 +537,10 @@ h5 {
 
 .notification {
   font-family: 'UnifrakturCook', cursive;
-  font-size: 22px;
+  font-size: 1.15vw;
   color: white;
-  padding: 12px 24px;
-  margin: 6px 0;
+  padding: 0.8vw 1.5vw;
+  margin: 0.5rem 0;
   border-radius: 8px;
   min-width: 240px;
   text-align: center;
@@ -614,7 +618,7 @@ h5 {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 0.85vw;
   transition: all 0.2s ease;
 }
 
@@ -624,13 +628,13 @@ h5 {
 
 #deckCount {
   color: gold;
-  font-size: 18px;
+  font-size: 1.125rem;
   margin-top: 6px;
 }
 
 #opponentDeckCount {
   color: gold;
-  font-size: 18px;
+  font-size: 1.125rem;
   margin-top: 6px;
 }
 
@@ -663,4 +667,23 @@ h5 {
 
 .card-frame {
   z-index: 0; /* normal layer */
+}
+.center-counter {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-weight: bold;
+  font-size: 0.9vw;
+  pointer-events: none;
+  z-index: 100;
+  text-shadow: 0 0 2px black;
+  color: rgba(255, 255, 255, 0.6); /* default neutral */
+}
+
+.center-counter.blue {
+  color: dodgerblue;
+}
+
+.center-counter.orange {
+  color: orange;
 }

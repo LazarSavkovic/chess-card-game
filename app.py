@@ -24,9 +24,14 @@ class ChessGame:
         self.mana = {'1': 50, '2': 50}
         self.graveyard = {'1': [], '2': []}
 
+
         self.turn_index = 0
         self.moves_this_turn = 0
         self.max_moves_per_turn = 3
+        self.center_tile_control = {
+            '1': 0,
+            '2': 0
+        }
 
         all_card_classes = get_concrete_subclasses(Card)
 
@@ -92,6 +97,25 @@ class ChessGame:
         return self.players[self.turn_index]
 
     def toggle_turn(self):
+        # 👇 Initialize if missing
+        if not hasattr(self, 'center_tile_control'):
+            self.center_tile_control = {'1': 0, '2': 0}
+
+        center_piece = self.board[3][3]
+        if center_piece:
+            print(center_piece)
+            owner = center_piece.owner
+            other = '1' if owner == '2' else '2'
+            print(owner)
+            print(other)
+
+            self.center_tile_control[owner] += 1
+            self.center_tile_control[other] = 0  # reset opponent's control
+        else:
+            # No one controls center
+            self.center_tile_control['1'] = 0
+            self.center_tile_control['2'] = 0
+
         self.turn_index = (self.turn_index + 1) % len(self.players)
         self.moves_this_turn = 0
         self.summoned_this_turn.clear()
@@ -289,7 +313,8 @@ def game(ws, game_id):
                     'deck_sizes': {
                         '1': len(game.decks['1']),
                         '2': len(game.decks['2']),
-                    }
+                    },
+                                'center_tile_control': game.center_tile_control
 
 
                 }))
@@ -323,7 +348,8 @@ def game(ws, game_id):
                             },
                             'to': to_pos,
                             'user_id': user_id,
-                            'moves_left': game.max_moves_per_turn - game.moves_this_turn
+                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                                'center_tile_control': game.center_tile_control
                         }))
                 else:
                     # Only notify the user who tried the move
@@ -347,9 +373,38 @@ def game(ws, game_id):
                                 '2': len(game.decks['2']),
                             },
                         'user_id': user_id,
-                        'moves_left': game.max_moves_per_turn - game.moves_this_turn
+                        'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                                'center_tile_control': game.center_tile_control
                     }))
             elif data['type'] == 'end-turn':
+                if game.center_tile_control[user_id] >= 6:
+                    # This player wins
+                    for uid, ws_conn in connected_users[game_id].items():
+                        ws_conn.send(json.dumps({
+                            'type': 'game-over',
+                            'board': [[p.to_dict() if p else None for p in row] for row in game.board],
+                            'hand1': [c.to_dict() for c in game.hands['1']],
+                            'hand2': [c.to_dict() for c in game.hands['2']],
+                            'graveyard': {
+                                '1': [c.to_dict() for c in game.graveyard['1']],
+                                '2': [c.to_dict() for c in game.graveyard['2']],
+                            },
+                            'deck_sizes': {
+                                '1': len(game.decks['1']),
+                                '2': len(game.decks['2']),
+                            },
+                            'turn': game.current_player,
+                            'success': True,
+                            'mana': game.mana,
+                            'info': f"Player {user_id} has controlled the center for 6 turns!",
+                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                            'game_over': {
+                                'result': 'victory' if uid == user_id else 'defeat'
+                            },
+                                'center_tile_control': game.center_tile_control
+                        }))
+                    return
+
                 if user_id == game.current_player:
                     game.toggle_turn()
                     serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
@@ -371,7 +426,8 @@ def game(ws, game_id):
                             'turn': game.current_player,
                             'info': f"Player {user_id} ended their turn.",
                             'success': True,
-                            'moves_left': game.max_moves_per_turn - game.moves_this_turn
+                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                                'center_tile_control': game.center_tile_control
                         }))
             elif data['type'] == 'summon':
                 slot = data['slot']
@@ -398,7 +454,8 @@ def game(ws, game_id):
                             },
                             'info': info,
                             'to': to_pos,
-                            'mana': game.mana
+                            'mana': game.mana,
+                                'center_tile_control': game.center_tile_control
                         }))
                 else:
                     # Only notify the player who attempted the summon
@@ -419,7 +476,8 @@ def game(ws, game_id):
                         },
                         'info': info,
                           'to': to_pos,
-                        'mana': game.mana
+                        'mana': game.mana,
+                                'center_tile_control': game.center_tile_control
                     }))
             elif data['type'] == 'direct-attack':
                 pos = data['pos']
@@ -450,7 +508,8 @@ def game(ws, game_id):
                             'moves_left': game.max_moves_per_turn - game.moves_this_turn,
                             'game_over': {
                                 'result': 'victory' if uid == winner else 'defeat'
-                            }
+                            },
+                                'center_tile_control': game.center_tile_control
                         }))
                     return
                 else:
@@ -472,7 +531,8 @@ def game(ws, game_id):
                             'success': success,
                             'mana': game.mana,
                             'info': info,
-                            'moves_left': game.max_moves_per_turn - game.moves_this_turn
+                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                                'center_tile_control': game.center_tile_control
                         }))
             elif data['type'] == 'activate-sorcery':
                 if not user_id:
@@ -511,7 +571,8 @@ def game(ws, game_id):
                                 '1': len(game.decks['1']),
                                 '2': len(game.decks['2']),
                             },
-                            'moves_left': game.max_moves_per_turn - game.moves_this_turn
+                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                                'center_tile_control': game.center_tile_control
                         }))
                 else:
                     # 👇 Regular activate logic
@@ -538,7 +599,8 @@ def game(ws, game_id):
                                 '1': len(game.decks['1']),
                                 '2': len(game.decks['2']),
                             },
-                            'moves_left': game.max_moves_per_turn - game.moves_this_turn
+                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                                'center_tile_control': game.center_tile_control
                         }))
 
             elif data['type'] == 'resolve-sorcery':
@@ -575,7 +637,9 @@ def game(ws, game_id):
                                     '2': len(game.decks['2']),
                                 },
                                 'info': info,
-                                'moves_left': game.max_moves_per_turn - game.moves_this_turn
+                                'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                                'center_tile_control': game.center_tile_control
+
                             }))
 
 

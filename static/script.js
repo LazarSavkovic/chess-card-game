@@ -10,6 +10,17 @@ const gameId = "demo"; // static for now
 const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
 const ws = new WebSocket(`${protocol}://${location.host}/game/${roomId}`);
 
+
+
+function showRotationPrompt() {
+  const isPortrait = window.innerHeight > window.innerWidth;
+  document.getElementById('rotatePrompt').style.display = isPortrait ? 'flex' : 'none';
+}
+
+window.addEventListener('resize', showRotationPrompt);
+showRotationPrompt();
+
+
 const boardEl = document.getElementById('board');
 let selected = null;
 let board = [];
@@ -18,6 +29,10 @@ let hand2 = [];
 let graveyard1 = [];
 let graveyard2 = [];
 let mana = { '1': 50, '2': 50 };
+let centerTileControl = {
+  '1': 0,
+  '2': 0
+}
 
 let turn = '1';
 let selectedHandIndex = null;
@@ -94,6 +109,12 @@ ws.onmessage = (event) => {
 
   // 🎮 Update game state
   if (data.board) board = data.board;
+
+  if (data.center_tile_control) {
+    centerTileControl = data.center_tile_control;
+  }
+  
+
   if (data.turn && data.turn !== turn) {
     notify('green', data.turn === userId ? "Your turn" : "Opponent's turn");
   }
@@ -270,13 +291,13 @@ function renderHand() {
         const label = document.createElement('div');
         label.innerText = 'SORCERY';
         label.style.position = 'absolute';
-        label.style.bottom = '4px';
-        label.style.left = '4px';
-        label.style.padding = '2px 4px';
+        label.style.bottom = '0.3vh';
+        label.style.left = '0.3vw';
+        label.style.padding = '0.3vh 0.6vw';
         label.style.background = 'rgba(255, 255, 255, 0.2)';
-        label.style.fontSize = '10px';
+        label.style.fontSize = '1.0vw';
         label.style.color = 'white';
-        label.style.borderRadius = '3px';
+        label.style.borderRadius = '0.16vw';
         cardEl.appendChild(label);
 
         cardEl.onclick = () => {
@@ -305,12 +326,12 @@ function renderHand() {
 
 function styleCardInfo(info) {
   info.style.position = 'absolute';
-  info.style.top = '8px';
-  info.style.left = '4px';
-  info.style.right = '4px';
-  info.style.fontSize = '11px';
+  info.style.top = '1vh';
+  info.style.left = '0.5vw';
+  info.style.right = '0.5vw';
+  info.style.fontSize = '1.12vw';
   info.style.background = 'rgba(0, 0, 0, 0.5)';
-  info.style.borderRadius = '4px';
+  info.style.borderRadius = '0.62vw';
 }
 
 
@@ -395,6 +416,30 @@ function renderBoard() {
       cell.dataset.x = x;
       cell.dataset.y = y;
 
+      const isCenter = x === 3 && y === 3;
+      if (isCenter) {
+        const centerCount = centerTileControl || { '1': 0, '2': 0 };
+        const count1 = centerCount['1'];
+        const count2 = centerCount['2'];
+        const owner = count1 > 0 && count2 === 0 ? '1'
+                    : count2 > 0 && count1 === 0 ? '2'
+                    : null;
+      
+        const label = document.createElement('div');
+        label.id = 'centerCounter';
+        label.className = 'center-counter';
+      
+        if (owner === '1') label.classList.add('blue');
+        else if (owner === '2') label.classList.add('orange');
+      
+        // 👇 Always show one of the counts, even if both are 0
+        label.innerText = owner === '1' ? count1
+                         : owner === '2' ? count2
+                         : 0;
+      
+        cell.appendChild(label);
+      }
+      
 
       const overlay = document.createElement('div');
       overlay.className = 'cell-overlay';
@@ -493,6 +538,13 @@ function renderBoard() {
 
       }
 
+      if (x === 3 && y === 3) {
+        const centerCounter = document.createElement('div');
+        centerCounter.id = 'centerCounter';
+        centerCounter.className = 'center-counter';
+        cell.appendChild(centerCounter);
+      }
+
       cell.onclick = () => handleClick(x, y, cell);
       boardEl.appendChild(cell);
     }
@@ -501,6 +553,9 @@ function renderBoard() {
   if (selectedHandIndex !== null) {
     highlightSummonZones();
   }
+
+  
+  console.log('rendered')
 
 }
 
@@ -893,15 +948,29 @@ function confirmAction(message, yesMessage, noMessage, onYes, onNo = () => {}) {
 
 
 
-document.addEventListener('contextmenu', (e) => {
-  e.preventDefault(); // prevent browser context menu
-
-  // Clear selection
+function clearSelection() {
   selected = null;
   selectedHandIndex = null;
-
-  // Clear visual highlights
   clearMoveHighlights();
   document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
   document.querySelectorAll('.summon-zone').forEach(el => el.classList.remove('summon-zone'));
+}
+
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  clearSelection();
 });
+
+let touchTimer = null;
+
+document.addEventListener('touchstart', () => {
+  touchTimer = setTimeout(() => {
+    clearSelection();
+  }, 600); // Long press = 600ms
+});
+
+document.addEventListener('touchend', () => {
+  clearTimeout(touchTimer);
+});
+
+
