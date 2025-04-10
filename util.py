@@ -10,5 +10,12 @@ def get_concrete_subclasses(cls):
         result.extend(get_concrete_subclasses(subclass))
     return result
 
+import inspect
+import cards
+
+def get_playable_card_classes():
+    from card_types import Card
+    all_subclasses = get_concrete_subclasses(Card)
+    return [cls for cls in all_subclasses if inspect.getmodule(cls) == cards]
 
 

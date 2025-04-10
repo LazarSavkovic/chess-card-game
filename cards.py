@@ -1,4 +1,4 @@
-from card_types import Monster, Sorcery
+from card_types import Monster, Sorcery, Land
 
 # prompt - great, now let's generate some images, they should be high quality, square
 #
@@ -27,10 +27,10 @@ class Bonecrawler(Monster):  # Formerly: Pawn
 class ShadowVine(Monster):  # Formerly: DiagonalRanger
     name = "Shadow Vine"
     movement = {
+        "forward": 'any',
         "forward-left": 'any',
-        "forward-right": 'any',
-        "back-left": 'any',
-        "back-right": 'any'
+        "back-right": 'any',
+        # "back-right": 'any'
     }
     original_attack = 200
     original_defense = 200
@@ -51,11 +51,11 @@ class DreadmawQueen(Monster):  # Formerly: Queen
     movement = {
         "forward": 'any',
         "forward-left": 'any',
-        "forward-right": 'any',
+        # "forward-right": 'any',
         "right": 'any',
         "back-left": 'any',
-        "left": 'any',
-        "back-right": 'any',
+        # "left": 'any',
+        # "back-right": 'any',
         "back": 'any'
     }
     original_attack = 170
@@ -76,7 +76,7 @@ class FrostRevenant(Monster):
     movement = {
         "forward": 'any',
         "back-left": 1,
-        "back-right": 1
+        "back": 1
     }
     original_attack = 180
     original_defense = 150
@@ -97,7 +97,7 @@ class SolarPaladin(Monster):
     movement = {
         "forward": 'any',
         "back": 'any',
-        "left": 'any',
+        "back-left": 'any',
         "right": 'any'
     }
 
@@ -388,7 +388,7 @@ class ArcaneTempest(Sorcery):
 class TargetedDestruction(Sorcery):
     name = "Targeted Destruction"
     text = "Choose and destroy an enemy monster."
-    activation_needs = ['forward-right']
+    activation_needs = ['forward-right', 'back']
 
     def __init__(self, owner):
         super().__init__(
@@ -422,7 +422,7 @@ class TargetedDestruction(Sorcery):
 class EmpoweringLight(Sorcery):
     name = "Empowering Light"
     text = "Choose a monster to increase its ATK by 50."
-    activation_needs = ['right', 'forward']  # Optional highlight rules
+    activation_needs = ['right', 'back-left']  # Optional highlight rules
 
     def __init__(self, owner):
         super().__init__(
@@ -550,3 +550,59 @@ class PowerSurge(Sorcery):
             card.defense *= 2
             return True, f"{card.name}'s ATK and DEF were doubled!"
         return False, "Invalid target"
+
+class VolcanicRift(Land):
+    name = "Volcanic Rift"
+    text = "Burns an opponent's monster for 50 DEF when it steps on this tile."
+    creation_needs = ["forward", 'back-right']
+
+    def __init__(self, owner):
+        super().__init__('volcanic_rift', owner, image='/static/cards/volcanic_rift.png', mana=2)
+
+    def on_enter(self, game, pos, monster):
+        if monster.owner != self.owner:
+            monster.defense -= 50
+            if monster.defense <= 0:
+                game.graveyard[monster.owner].append(monster)
+                x, y = pos
+                game.board[x][y] = None
+
+
+class SacredGrove(Land):
+    name = "Sacred Grove"
+    text = "Heals your monster for 30 DEF every turn it's on this tile."
+    creation_needs = ["back-right", 'left']
+
+    def __init__(self, owner):
+        super().__init__('sacred_grove', owner, image='/static/cards/sacred_grove.png', mana=2)
+
+    def on_turn_start(self, game, pos, monster):
+        if monster.owner == self.owner:
+            monster.defense += 30
+
+
+class FrozenBarrier(Land):
+    name = "Frozen Barrier"
+    text = "Opponent's monsters cannot move across this tile."
+    creation_needs = ["back-right", 'forward']
+
+    def __init__(self, owner):
+        super().__init__('frozen_barrier', owner, image='/static/cards/frozen_barrier.png', mana=1)
+
+    def blocks_movement(self, monster):
+        if monster.owner != self.owner:
+            return True
+        return False
+
+
+class StormNexus(Land):
+    name = "Storm Nexus"
+    text = "Reduces the ATK of enemy monsters that step on this tile by 40."
+    creation_needs = ["back-left"]
+
+    def __init__(self, owner):
+        super().__init__('storm_nexus', owner, image='/static/cards/storm_nexus.png', mana=2)
+
+    def on_enter(self, game, pos, monster):
+        if monster.owner != self.owner:
+            monster.attack -= 40

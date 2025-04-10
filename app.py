@@ -4,7 +4,7 @@ import json
 from cards import *
 from card_types import Monster, Card
 from random import shuffle, choice
-from util import get_concrete_subclasses
+from util import get_concrete_subclasses, get_playable_card_classes
 import uuid
 import time
 
@@ -20,6 +20,7 @@ games = {}
 class ChessGame:
     def __init__(self):
         self.board = self.init_board()
+        self.land_board = self.init_land_board()
         self.players = ['1', '2']
         self.mana = {'1': 50, '2': 50}
         self.graveyard = {'1': [], '2': []}
@@ -33,7 +34,7 @@ class ChessGame:
             '2': 0
         }
 
-        all_card_classes = get_concrete_subclasses(Card)
+        all_card_classes = get_playable_card_classes()
 
         self.decks = {
             '1': [choice(all_card_classes)('1') for _ in range(40)],
@@ -50,6 +51,7 @@ class ChessGame:
         }
         self.summoned_this_turn = set()
         self.sorcery_used_this_turn = set()
+        self.land_placed_this_turn = set()
 
     @staticmethod
     def get_valid_summon_positions(user_id):
@@ -67,8 +69,6 @@ class ChessGame:
             return False, "You've already summoned this turn"
 
         if to_pos not in self.get_valid_summon_positions(user_id):
-            print(to_pos)
-            print(self.get_valid_summon_positions(user_id))
             return False, "Invalid summon position"
 
         tx, ty = to_pos
@@ -92,6 +92,11 @@ class ChessGame:
 
         return board
 
+    def init_land_board(self):
+        land_board = [[None for _ in range(7)] for _ in range(7)]
+
+        return land_board
+
     @property
     def current_player(self):
         return self.players[self.turn_index]
@@ -103,11 +108,8 @@ class ChessGame:
 
         center_piece = self.board[3][3]
         if center_piece:
-            print(center_piece)
             owner = center_piece.owner
             other = '1' if owner == '2' else '2'
-            print(owner)
-            print(other)
 
             self.center_tile_control[owner] += 1
             self.center_tile_control[other] = 0  # reset opponent's control
@@ -120,7 +122,15 @@ class ChessGame:
         self.moves_this_turn = 0
         self.summoned_this_turn.clear()
         self.sorcery_used_this_turn.clear()
+        self.land_placed_this_turn.clear()
         self.draw_card(self.current_player)
+
+        for x in range(7):
+            for y in range(7):
+                card = self.board[x][y]
+                land = self.land_board[x][y]
+                if card and land and hasattr(land, 'on_turn_start'):
+                    land.on_turn_start(self, (x, y), card)
 
     def can_move(self, user_id):
         return user_id == self.current_player and self.moves_this_turn < self.max_moves_per_turn
@@ -177,8 +187,20 @@ class ChessGame:
                 return False, "Path blocked by another monster"
             x += step_x
             y += step_y
+            land = self.land_board[x][y]
+            if land:
+                if hasattr(land, 'blocks_movement') and land.blocks_movement(card):
+                    return False, f"{land.name} blocks movement!"
 
         target = self.board[tx][ty]
+        target_land = self.land_board[tx][ty]
+        if target_land:
+            if hasattr(target_land, 'blocks_movement') and target_land.blocks_movement(card):
+                return False, f"{target_land.name} blocks movement!"
+            else:
+                if hasattr(target_land, 'on_enter'):
+                    target_land.on_enter(self, (tx, ty), card)
+
         if target:
             if target.owner == card.owner:
                 return False, "Can't capture your own card"
@@ -211,7 +233,7 @@ class ChessGame:
         self.moves_this_turn += 1
         return True, "Move successful"
 
-    def activate_sorcery(self, slot_index, user_id, target_pos):
+    def game_can_activate_card(self,slot_index, user_id, target_pos):
         if user_id != self.current_player:
             return False, "Not your turn"
 
@@ -232,8 +254,14 @@ class ChessGame:
         if target_pos is None:
             return False, "No activation position provided"
 
-        if not card.can_activate(self.board, target_pos[0], target_pos[1]):
+        if not card.can_activate(self, target_pos[0], target_pos[1]):
             return False, "Activation needs not met"
+        return True, 'Card can be activated'
+
+
+    def activate_sorcery(self, slot_index, user_id, target_pos):
+        hand = self.hands[user_id]
+        card = hand[slot_index]
 
         self.mana[user_id] -= card.mana
         hand.pop(slot_index)
@@ -243,6 +271,52 @@ class ChessGame:
         card.affect_board(self, tuple(target_pos), user_id)
 
         return True, f"{card.name} activated!"
+
+    def game_can_place_land(self, slot_index, user_id, to_pos):
+        if user_id != self.current_player:
+            return False, "Not your turn"
+
+        if user_id in self.land_placed_this_turn:
+            return False, "You've already created a land this turn"
+
+        hand = self.hands[user_id]
+        if not (0 <= slot_index < len(hand)):
+            return False, "Invalid card slot"
+
+        card = hand[slot_index]
+        if card.type != 'land':
+            return False, "Not a land card"
+
+        if self.mana[user_id] < card.mana:
+            return False, "Not enough mana"
+
+        x, y = to_pos
+        if self.land_board[x][y] is not None:
+            return False, "Land already exists here"
+
+        x, y = to_pos
+        if self.board[x][y] is not None:
+            return False, "Tile is occupied"
+
+        # Optional: Check card.creation_needs like sorceries do
+        if hasattr(card, "creation_needs") and not card.can_create(self, x, y):
+            return False, "Creation needs not met"
+
+        return True, 'Land can be placed'
+
+
+    def place_land(self, slot_index, user_id, to_pos):
+        x, y = to_pos
+
+        hand = self.hands[user_id]
+        card = hand[slot_index]
+
+        self.land_placed_this_turn.add(user_id)
+        self.mana[user_id] -= card.mana
+        hand.pop(slot_index)
+        self.land_board[x][y] = card
+        return True, f"{card.name} placed as land"
+
 
 @app.route('/')
 def index():
@@ -295,6 +369,7 @@ def game(ws, game_id):
                 ws.send(json.dumps({'user_id': user_id}))
 
                 serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
                 hand1 = [c.to_dict() for c in game.hands['1']]
                 hand2 = [c.to_dict() for c in game.hands['2']]
 
@@ -302,6 +377,7 @@ def game(ws, game_id):
                 ws.send(json.dumps({
                     'type': 'init',
                     'board': serialized_board,
+                    'land_board': serialized_land_board,
                     'hand1': [c.to_dict() for c in game.hands['1']],
                     'hand2': [c.to_dict() for c in game.hands['2']],
                     'turn': game.current_player,
@@ -325,12 +401,14 @@ def game(ws, game_id):
                 to_pos = data['to']
                 success, info = game.move(from_pos, to_pos, user_id)
                 serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
 
                 if success:
                     for other_ws in connected_users[game_id].values():
                         other_ws.send(json.dumps({
                             'type': 'update',
                             'board': serialized_board,
+                            'land_board': serialized_land_board,
                             'turn': game.current_player,
                             'success': success,
                             'hand1': [c.to_dict() for c in game.hands['1']],
@@ -356,6 +434,7 @@ def game(ws, game_id):
                     ws.send(json.dumps({
                         'type': 'update',
                         'board': serialized_board,
+                        'land_board': serialized_land_board,
                         'turn': game.current_player,
                         'success': success,
                         'info': info,
@@ -383,6 +462,7 @@ def game(ws, game_id):
                         ws_conn.send(json.dumps({
                             'type': 'game-over',
                             'board': [[p.to_dict() if p else None for p in row] for row in game.board],
+                            'land_board': [[p.to_dict() if p else None for p in row] for row in game.land_board],
                             'hand1': [c.to_dict() for c in game.hands['1']],
                             'hand2': [c.to_dict() for c in game.hands['2']],
                             'graveyard': {
@@ -408,10 +488,13 @@ def game(ws, game_id):
                 if user_id == game.current_player:
                     game.toggle_turn()
                     serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                    serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
+
                     for other_ws in connected_users[game_id].values():
                         other_ws.send(json.dumps({
                             'type': 'update',
                             'board': serialized_board,
+                            'land_board': serialized_land_board,
                             'mana': game.mana,
                             'hand1': [c.to_dict() for c in game.hands['1']],
                             'hand2': [c.to_dict() for c in game.hands['2']],
@@ -427,19 +510,22 @@ def game(ws, game_id):
                             'info': f"Player {user_id} ended their turn.",
                             'success': True,
                             'moves_left': game.max_moves_per_turn - game.moves_this_turn,
-                                'center_tile_control': game.center_tile_control
+                            'center_tile_control': game.center_tile_control
                         }))
             elif data['type'] == 'summon':
                 slot = data['slot']
                 to_pos = data['to']
                 success, info = game.summon_card(slot, to_pos, user_id)
                 serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
+
 
                 if success:
                     for ws_conn in connected_users[game_id].values():
                         ws_conn.send(json.dumps({
                             'type': 'update',
                             'board': serialized_board,
+                            'land_board': serialized_land_board,
                             'hand1': [c.to_dict() for c in game.hands['1']],
                             'hand2': [c.to_dict() for c in game.hands['2']],
                             'turn': game.current_player,
@@ -455,13 +541,14 @@ def game(ws, game_id):
                             'info': info,
                             'to': to_pos,
                             'mana': game.mana,
-                                'center_tile_control': game.center_tile_control
+                            'center_tile_control': game.center_tile_control
                         }))
                 else:
                     # Only notify the player who attempted the summon
                     connected_users[game_id][user_id].send(json.dumps({
                         'type': 'update',
                         'board': serialized_board,
+                        'land_board': serialized_land_board,
                         'hand1': [c.to_dict() for c in game.hands['1']],
                         'hand2': [c.to_dict() for c in game.hands['2']],
                         'turn': game.current_player,
@@ -475,14 +562,15 @@ def game(ws, game_id):
                             '2': len(game.decks['2']),
                         },
                         'info': info,
-                          'to': to_pos,
+                        'to': to_pos,
                         'mana': game.mana,
-                                'center_tile_control': game.center_tile_control
+                        'center_tile_control': game.center_tile_control
                     }))
             elif data['type'] == 'direct-attack':
                 pos = data['pos']
                 success, info, game_over = game.direct_attack(pos, user_id)
                 serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
 
                 if game_over:
                     winner = user_id
@@ -491,6 +579,7 @@ def game(ws, game_id):
                         ws_conn.send(json.dumps({
                             'type': 'game-over',
                             'board': serialized_board,
+                            'land_board': serialized_land_board,
                             'hand1': [c.to_dict() for c in game.hands['1']],
                             'hand2': [c.to_dict() for c in game.hands['2']],
                             'graveyard': {
@@ -509,7 +598,7 @@ def game(ws, game_id):
                             'game_over': {
                                 'result': 'victory' if uid == winner else 'defeat'
                             },
-                                'center_tile_control': game.center_tile_control
+                            'center_tile_control': game.center_tile_control
                         }))
                     return
                 else:
@@ -517,13 +606,14 @@ def game(ws, game_id):
                         other_ws.send(json.dumps({
                             'type': 'update',
                             'board': serialized_board,
+                            'land_board': serialized_land_board,
                             'hand1': [c.to_dict() for c in game.hands['1']],
                             'hand2': [c.to_dict() for c in game.hands['2']],
                             'graveyard': {
                                 '1': [c.to_dict() for c in game.graveyard['1']],
                                 '2': [c.to_dict() for c in game.graveyard['2']],
                             },
-                                'deck_sizes': {
+                            'deck_sizes': {
                                         '1': len(game.decks['1']),
                                         '2': len(game.decks['2']),
                                     },
@@ -532,7 +622,7 @@ def game(ws, game_id):
                             'mana': game.mana,
                             'info': info,
                             'moves_left': game.max_moves_per_turn - game.moves_this_turn,
-                                'center_tile_control': game.center_tile_control
+                            'center_tile_control': game.center_tile_control
                         }))
             elif data['type'] == 'activate-sorcery':
                 if not user_id:
@@ -541,67 +631,96 @@ def game(ws, game_id):
                 slot = data['slot']
                 target = data.get('pos')  # optional
                 card = game.hands[user_id][slot]
+                success, info = game.game_can_activate_card(slot, user_id, target)
+                if not success:
 
-                if callable(getattr(card, "requires_additional_input", None)) and card.requires_additional_input():
-
-                    # 👇 Regular activate logic
-                    success, info = True, f'{card.name} activated'
-                    valid_targets = card.get_valid_targets(game, user_id)
                     serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
-                    print(slot)
-                    print(user_id)
-
-                    connected_users[game_id][user_id].send(json.dumps({
-                            'type': 'awaiting-input',
-                            'board': serialized_board,
-                            'hand1': [c.to_dict() for c in game.hands['1']],
-                            'hand2': [c.to_dict() for c in game.hands['2']],
-                            'turn': game.current_player,
-                            'slot': slot,
-                            'success': success,
-                            'valid_targets': valid_targets,
-                            'card_id': card.card_id,
-                            'graveyard': {
-                                '1': [c.to_dict() for c in game.graveyard['1']],
-                                '2': [c.to_dict() for c in game.graveyard['2']],
-                            },
-                            'mana': game.mana,
-                            'info': info,
-                            'deck_sizes': {
-                                '1': len(game.decks['1']),
-                                '2': len(game.decks['2']),
-                            },
-                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
-                                'center_tile_control': game.center_tile_control
-                        }))
+                    serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
+                    # Only notify the user who tried the move
+                    ws.send(json.dumps({
+                        'type': 'update',
+                        'board': serialized_board,
+                        'land_board': serialized_land_board,
+                        'hand1': [c.to_dict() for c in game.hands['1']],
+                        'hand2': [c.to_dict() for c in game.hands['2']],
+                        'turn': game.current_player,
+                        'success': success,
+                        'graveyard': {
+                            '1': [c.to_dict() for c in game.graveyard['1']],
+                            '2': [c.to_dict() for c in game.graveyard['2']],
+                        },
+                        'mana': game.mana,
+                        'info': info,
+                        'deck_sizes': {
+                            '1': len(game.decks['1']),
+                            '2': len(game.decks['2']),
+                        },
+                        'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                        'center_tile_control': game.center_tile_control
+                    }))
                 else:
-                    # 👇 Regular activate logic
-                    success, info = game.activate_sorcery(slot, user_id, target)
-                    serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
 
-                    print(user_id)
+                    if callable(getattr(card, "requires_additional_input", None)) and card.requires_additional_input():
 
-                    for ws_conn in connected_users[game_id].values():
-                        ws_conn.send(json.dumps({
-                            'type': 'update',
-                            'board': serialized_board,
-                            'hand1': [c.to_dict() for c in game.hands['1']],
-                            'hand2': [c.to_dict() for c in game.hands['2']],
-                            'turn': game.current_player,
-                            'success': success,
-                            'graveyard': {
-                                '1': [c.to_dict() for c in game.graveyard['1']],
-                                '2': [c.to_dict() for c in game.graveyard['2']],
-                            },
-                            'mana': game.mana,
-                            'info': info,
-                            'deck_sizes': {
-                                '1': len(game.decks['1']),
-                                '2': len(game.decks['2']),
-                            },
-                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                        # 👇 Regular activate logic
+                        success, info = True, f'{card.name} activated'
+                        valid_targets = card.get_valid_targets(game, user_id)
+                        serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                        serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
+
+
+                        connected_users[game_id][user_id].send(json.dumps({
+                                'type': 'awaiting-input',
+                                'board': serialized_board,
+                                'land_board': serialized_land_board,
+                                'hand1': [c.to_dict() for c in game.hands['1']],
+                                'hand2': [c.to_dict() for c in game.hands['2']],
+                                'turn': game.current_player,
+                                'slot': slot,
+                                'success': success,
+                                'valid_targets': valid_targets,
+                                'card_id': card.card_id,
+                                'graveyard': {
+                                    '1': [c.to_dict() for c in game.graveyard['1']],
+                                    '2': [c.to_dict() for c in game.graveyard['2']],
+                                },
+                                'mana': game.mana,
+                                'info': info,
+                                'deck_sizes': {
+                                    '1': len(game.decks['1']),
+                                    '2': len(game.decks['2']),
+                                },
+                                'moves_left': game.max_moves_per_turn - game.moves_this_turn,
                                 'center_tile_control': game.center_tile_control
-                        }))
+                            }))
+                    else:
+                        # 👇 Regular activate logic
+                        success, info = game.activate_sorcery(slot, user_id, target)
+                        serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+
+
+                        for ws_conn in connected_users[game_id].values():
+                            ws_conn.send(json.dumps({
+                                'type': 'update',
+                                'board': serialized_board,
+                                'land_board': serialized_land_board,
+                                'hand1': [c.to_dict() for c in game.hands['1']],
+                                'hand2': [c.to_dict() for c in game.hands['2']],
+                                'turn': game.current_player,
+                                'success': success,
+                                'graveyard': {
+                                    '1': [c.to_dict() for c in game.graveyard['1']],
+                                    '2': [c.to_dict() for c in game.graveyard['2']],
+                                },
+                                'mana': game.mana,
+                                'info': info,
+                                'deck_sizes': {
+                                    '1': len(game.decks['1']),
+                                    '2': len(game.decks['2']),
+                                },
+                                'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                                'center_tile_control': game.center_tile_control
+                            }))
 
             elif data['type'] == 'resolve-sorcery':
                     slot = data['slot']
@@ -619,10 +738,13 @@ def game(ws, game_id):
                             game.sorcery_used_this_turn.add(user_id)
 
                         serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                        serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
+
                         for ws_conn in connected_users[game_id].values():
                             ws_conn.send(json.dumps({
                                 'type': 'update',
                                 'board': serialized_board,
+                                'land_board': serialized_land_board,
                                 'hand1': [c.to_dict() for c in game.hands['1']],
                                 'hand2': [c.to_dict() for c in game.hands['2']],
                                 'turn': game.current_player,
@@ -641,11 +763,111 @@ def game(ws, game_id):
                                 'center_tile_control': game.center_tile_control
 
                             }))
+            elif data['type'] == 'place-land':
+                if not user_id:
+                    continue  # or raise, or wait — don't access hands/cards yet
+
+                slot = data['slot']
+                target = data.get('pos')  # optional
+                card = game.hands[user_id][slot]
+
+                # 👇 Regular placement logic
+                success, info = game.game_can_place_land(slot, user_id, target)
+                if not success:
+                    serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                    serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
+
+                    # Only notify the user who tried the move
+                    ws.send(json.dumps({
+                        'type': 'update',
+                        'board': serialized_board,
+                        'land_board': serialized_land_board,
+                        'hand1': [c.to_dict() for c in game.hands['1']],
+                        'hand2': [c.to_dict() for c in game.hands['2']],
+                        'turn': game.current_player,
+                        'success': success,
+                        'graveyard': {
+                            '1': [c.to_dict() for c in game.graveyard['1']],
+                            '2': [c.to_dict() for c in game.graveyard['2']],
+                        },
+                        'mana': game.mana,
+                        'info': info,
+                        'deck_sizes': {
+                            '1': len(game.decks['1']),
+                            '2': len(game.decks['2']),
+                        },
+                        'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                        'center_tile_control': game.center_tile_control
+                    }))
+                else:
 
 
+                    success, info = game.place_land(slot, user_id, target)
+                    serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                    serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
 
+                    for ws_conn in connected_users[game_id].values():
+                        ws_conn.send(json.dumps({
+                            'type': 'update',
+                            'board': serialized_board,
+                            'land_board': serialized_land_board,
+                            'hand1': [c.to_dict() for c in game.hands['1']],
+                            'hand2': [c.to_dict() for c in game.hands['2']],
+                            'turn': game.current_player,
+                            'success': success,
+                            'graveyard': {
+                                '1': [c.to_dict() for c in game.graveyard['1']],
+                                '2': [c.to_dict() for c in game.graveyard['2']],
+                            },
+                            'mana': game.mana,
+                            'info': info,
+                            'deck_sizes': {
+                                '1': len(game.decks['1']),
+                                '2': len(game.decks['2']),
+                            },
+                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                            'center_tile_control': game.center_tile_control
+                        }))
 
+            elif data['type'] == 'resolve-land':
+                    slot = data['slot']
+                    target = data['target']
+                    card = game.hands[user_id][slot]
 
+                    if hasattr(card, "resolve_with_input"):
+                        # 👇 Try resolving first — don't remove card or spend mana yet
+                        success, info = card.resolve_with_input(game, user_id, target)
+
+                        if success:
+                            game.hands[user_id].pop(slot)
+                            game.graveyard[user_id].append(card)
+                            game.mana[user_id] -= card.mana
+
+                        serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
+                        serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
+                        for ws_conn in connected_users[game_id].values():
+                            ws_conn.send(json.dumps({
+                                'type': 'update',
+                                'board': serialized_board,
+                                'land_board': serialized_land_board,
+                                'hand1': [c.to_dict() for c in game.hands['1']],
+                                'hand2': [c.to_dict() for c in game.hands['2']],
+                                'turn': game.current_player,
+                                'success': success,
+                                'mana': game.mana,
+                                'graveyard': {
+                                    '1': [c.to_dict() for c in game.graveyard['1']],
+                                    '2': [c.to_dict() for c in game.graveyard['2']],
+                                },
+                                'deck_sizes': {
+                                    '1': len(game.decks['1']),
+                                    '2': len(game.decks['2']),
+                                },
+                                'info': info,
+                                'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                                'center_tile_control': game.center_tile_control
+
+                            }))
 
     except Exception as e:
         print(f"WebSocket error: {e}")

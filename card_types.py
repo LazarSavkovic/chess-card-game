@@ -74,6 +74,7 @@ class Monster(Card):
         # or add collision detection here if needed
 
         return True
+
     @staticmethod
     def resolve_direction(dx, dy, owner):
         # Flip perspective for owner '2'
@@ -93,19 +94,6 @@ class Monster(Card):
         }
         return direction_map.get((dx, dy))
 
-#
-# # Land and Sorcery could also subclass Card
-# class Land(Card):
-#     def __init__(self, card_id, owner, mana_type, image='', mana=0):
-#         super().__init__('land', card_id, owner, image, mana)
-#         self.mana_type = mana_type
-#
-#     def to_dict(self):
-#         base = super().to_dict()
-#         base['mana_type'] = self.mana_type
-#         return base
-#
-#
 
 class Sorcery(Card):
     activation_needs = [] # default: no constraints
@@ -114,9 +102,9 @@ class Sorcery(Card):
         super().__init__('sorcery', card_id, owner, image, mana)
 
 
-    def can_activate(self, board, x, y):
+    def can_activate(self, game, x, y):
         for direction in self.activation_needs:
-            if not satisfies_activation_need(board, x, y, direction, self.owner):
+            if not satisfies_need(game, x, y, direction, self.owner):
                 return False
         return True
 
@@ -134,62 +122,92 @@ class Sorcery(Card):
         return base
 
 
-def satisfies_activation_need(board, x, y, direction, owner):
-    dx, dy = get_direction_offset(direction)
-    tx, ty = x + dx, y + dy
-    if not (0 <= tx < len(board) and 0 <= ty < len(board[0])):
+class Land(Card):
+    creation_needs = [] # default: no constraints
+    text = ''
+    def __init__(self, card_id, owner, image='', mana=0):
+        super().__init__('land', card_id, owner, image, mana)
+
+    def can_create(self, game, x, y):
+        for direction in self.creation_needs:
+            if not satisfies_need(game, x, y, direction, self.owner):
+                return False
+        return True
+
+    def affect_board(self, game, user_id):
+        """
+        Override this in subclasses to define what the card does.
+        """
+        pass
+
+    def blocks_movement(self, monster):
         return False
 
-    opposite = {
-        "forward": "back",
-        "back": "forward",
-        "left": "right",
-        "right": "left",
-        "forward-left": "back-right",
-        "forward-right": "back-left",
-        "back-left": "forward-right",
-        "back-right": "forward-left"
-    }
+    def on_enter(self, game, pos, monster):
+        pass
 
-    opposite_dir = opposite[direction]
+    def on_turn_start(self, game, pos, monster):
+        pass
 
-    # 👉 Check tile in "direction"
-    card = board[tx][ty]
-    if isinstance(card, Monster):
-        dx1, dy1 = get_direction_offset(opposite_dir)  # ❗️No owner here
-        monster_dir = Monster.resolve_direction(dx1, dy1, card.owner)
-        movement_val = card.movement.get(monster_dir)
-        if movement_val == 1 or movement_val == 'any':
-            return True
+    def to_dict(self):
+        base = super().to_dict()
+        base['creation_needs'] = self.creation_needs
+        base['text'] = self.text
+        base['effect'] = self.__class__.__name__  # optional, for display
+        return base
 
-    # 👉 Check tile in "opposite direction"
-    ox, oy = x - dx, y - dy
-    if 0 <= ox < len(board) and 0 <= oy < len(board[0]):
-        card = board[ox][oy]
-        if isinstance(card, Monster):
-            dx2, dy2 = get_direction_offset(direction)  # again no owner
-            monster_dir = Monster.resolve_direction(dx2, dy2, card.owner)
-            movement_val = card.movement.get(monster_dir)
-            if movement_val == 1 or movement_val == 'any':
+def satisfies_need(game, x, y, direction, owner):
+    dx, dy = get_direction_offset(direction, owner)
+    tx, ty = x + dx, y + dy
+
+
+    if not (0 <= tx < len(game.board) and 0 <= ty < len(game.board[0])):
+        return False
+
+    # --- Check the tile in the required direction ---
+    target_card = game.board[tx][ty]
+
+    if isinstance(target_card, Monster):
+        for direction in target_card.movement:
+            range_val = target_card.movement[direction]
+            if range_val != 1 and range_val != 'any':
+                continue  # skip longer range moves
+
+            offset = get_direction_offset(direction, target_card.owner)
+            if offset is None:
+                continue
+            nx, ny = offset
+            if [tx + nx, ty + ny] == [x,y]:
                 return True
-    print('failing on line 179')
+
+    target_card = game.land_board[tx][ty]
+
+    if isinstance(target_card, Land):
+        for direction in target_card.creation_needs:
+            offset = get_direction_offset(direction, target_card.owner)
+            if offset is None:
+                continue
+            nx, ny = offset
+            if [tx + nx, ty + ny] == [x,y]:
+                return True
+
     return False
 
 
-
-
 def get_direction_offset(direction, owner=None):
-    # Always treat forward as up (player 1's perspective)
-    forward = -1
+    forward = -1 if owner == '1' else 1
+    left = -1 if owner == '1' else 1
+    right = 1 if owner == '1' else -1
+
     mapping = {
         "forward": (forward, 0),
         "back": (-forward, 0),
-        "left": (0, -1),
-        "right": (0, 1),
-        "forward-left": (forward, -1),
-        "forward-right": (forward, 1),
-        "back-left": (-forward, -1),
-        "back-right": (-forward, 1),
+        "left": (0, left),
+        "right": (0, right),
+        "forward-left": (forward, left),
+        "forward-right": (forward, right),
+        "back-left": (-forward, left),
+        "back-right": (-forward, right),
     }
-    return mapping.get(direction)
+    return mapping.get(direction, (0, 0))
 

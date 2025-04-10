@@ -24,6 +24,7 @@ showRotationPrompt();
 const boardEl = document.getElementById('board');
 let selected = null;
 let board = [];
+let landBoard = [];
 let hand1 = [];
 let hand2 = [];
 let graveyard1 = [];
@@ -109,6 +110,7 @@ ws.onmessage = (event) => {
 
   // 🎮 Update game state
   if (data.board) board = data.board;
+  if (data.land_board) landBoard = data.land_board;
 
   if (data.center_tile_control) {
     centerTileControl = data.center_tile_control;
@@ -303,7 +305,33 @@ function renderHand() {
         cardEl.onclick = () => {
           selectedHandIndex = i;
           // For now, no special highlight
-          highlightSorceryZones();  // 👈 new behavior
+          highlightPlaceActivateZones();  // 👈 new behavior
+        };
+      }
+
+      else if (card.type === 'land') {
+        const info = document.createElement('div');
+        info.className = 'card-info';
+        info.innerText = `${card.name}\n(Land)`;
+        styleCardInfo(info);
+        cardEl.appendChild(info);
+
+        const label = document.createElement('div');
+        label.innerText = 'LAND';
+        label.style.position = 'absolute';
+        label.style.bottom = '0.3vh';
+        label.style.left = '0.3vw';
+        label.style.padding = '0.3vh 0.6vw';
+        label.style.background = 'rgba(255, 255, 255, 0.2)';
+        label.style.fontSize = '1.0vw';
+        label.style.color = 'white';
+        label.style.borderRadius = '0.16vw';
+        cardEl.appendChild(label);
+
+        cardEl.onclick = () => {
+          selectedHandIndex = i;
+          // For now, no special highlight
+          highlightPlaceActivateZones();  // 👈 new behavior
         };
       }
 
@@ -445,98 +473,116 @@ function renderBoard() {
       overlay.className = 'cell-overlay';
       cell.appendChild(overlay);
 
-      const card = board[x][y];
-      if (card) {
-        const cardFrame = document.createElement('div');
-        cardFrame.className = `card-frame ${card.owner === '1' ? 'user-1' : 'user-2'}`;
+      const boardCard = board[x][y];
+      const landCard = landBoard[x][y];
 
-        if (`${x}-${y}` === lastSummonedPos) {
-          cardFrame.classList.add("just-summoned");
-          // Remove the class after animation ends
-          cardFrame.addEventListener("animationend", () => {
-            cardFrame.classList.remove("just-summoned");
-          });
-        }
-        const imageDiv = document.createElement('div');
-        imageDiv.className = 'card-image';
-        imageDiv.style.backgroundImage = `url(${card.image})`;
-
-        if (card.owner !== userId) {
-          imageDiv.classList.add('flipped-image');
-        }
-
-        cardFrame.appendChild(imageDiv);
-
-
-        cardFrame.style.position = 'relative';
-        cardFrame.style.color = 'white';
-        cardFrame.style.textShadow = '0 0 3px black';
-        cardFrame.style.backdropFilter = 'brightness(0.8)';
-        const overlay = document.createElement('div');
-        overlay.className = 'overlay';
-        cardFrame.appendChild(overlay);
-
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'card-name';
-        nameDiv.textContent = card.name;
-        cardFrame.appendChild(nameDiv);
-
-        // 👉 Add the name as a tooltip
-        cardFrame.title = card.name;
-
-        cardFrame.onmouseenter = () => {
-          showCardPreview(card);
-        };
-
-        
-        const statsDiv = document.createElement('div');
-        statsDiv.className = 'stats';
-        cardFrame.appendChild(statsDiv);
-
-
-        if (card.attack !== undefined && card.defense !== undefined) {
-          const attackSpan = document.createElement('span');
-          const defenseSpan = document.createElement('span');
-        
-          // Check for attack change
-          if (card.attack > card.original_attack) {
-            attackSpan.style.color = 'lime';
-          } else if (card.attack < card.original_attack) {
-            attackSpan.style.color = 'red';
+      for (let card of [landCard, boardCard ]){
+        if (card) {
+          const cardFrame = document.createElement('div');
+          cardFrame.className = `card-frame ${card.owner === '1' ? 'user-1' : 'user-2'}`;
+  
+          if (`${x}-${y}` === lastSummonedPos) {
+            cardFrame.classList.add("just-summoned");
+            // Remove the class after animation ends
+            cardFrame.addEventListener("animationend", () => {
+              cardFrame.classList.remove("just-summoned");
+            });
           }
-        
-          // Check for defense change
-          if (card.defense > card.original_defense) {
-            defenseSpan.style.color = 'lime';
-          } else if (card.defense < card.original_defense) {
-            defenseSpan.style.color = 'red';
+          const imageDiv = document.createElement('div');
+          imageDiv.className = 'card-image';
+          imageDiv.style.backgroundImage = `url(${card.image})`;
+  
+          if (card.owner !== userId) {
+            imageDiv.classList.add('flipped-image');
           }
-        
-          attackSpan.textContent = card.attack;
-          defenseSpan.textContent = card.defense;
-        
-          statsDiv.appendChild(attackSpan);
-          statsDiv.appendChild(document.createTextNode(' / '));
-          statsDiv.appendChild(defenseSpan);
-        }
-        
-        cardFrame.id = `card-${card.id}`;
+  
+          cardFrame.appendChild(imageDiv);
+  
+  
+          cardFrame.style.position = 'relative';
+          cardFrame.style.color = 'white';
+          cardFrame.style.textShadow = '0 0 3px black';
+          cardFrame.style.backdropFilter = 'brightness(0.8)';
+          const overlay = document.createElement('div');
+          overlay.className = 'overlay';
+          cardFrame.appendChild(overlay);
+  
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'card-name';
+          nameDiv.textContent = card.name;
+          cardFrame.appendChild(nameDiv);
+  
+          // 👉 Add the name as a tooltip
+          cardFrame.title = card.name;
+  
+          cardFrame.onmouseenter = () => {
+            showCardPreview(card);
+          };
+  
+          
+          const statsDiv = document.createElement('div');
+          statsDiv.className = 'stats';
+          cardFrame.appendChild(statsDiv);
+  
+  
+          if (card.attack !== undefined && card.defense !== undefined) {
+            const attackSpan = document.createElement('span');
+            const defenseSpan = document.createElement('span');
+          
+            // Check for attack change
+            if (card.attack > card.original_attack) {
+              attackSpan.style.color = 'lime';
+            } else if (card.attack < card.original_attack) {
+              attackSpan.style.color = 'red';
+            }
+          
+            // Check for defense change
+            if (card.defense > card.original_defense) {
+              defenseSpan.style.color = 'lime';
+            } else if (card.defense < card.original_defense) {
+              defenseSpan.style.color = 'red';
+            }
+          
+            attackSpan.textContent = card.attack;
+            defenseSpan.textContent = card.defense;
+          
+            statsDiv.appendChild(attackSpan);
+            statsDiv.appendChild(document.createTextNode(' / '));
+            statsDiv.appendChild(defenseSpan);
+          }
+          
+          cardFrame.id = `card-${card.id}`;
 
-        cell.appendChild(cardFrame);
-
-        if (card.movement) {
-          for (const dir in card.movement) {
-            if (card.movement[dir]) {
+          if (card.type == 'land'){
+            cardFrame.style.transform = "rotate(45deg)"
+          }
+  
+          cell.appendChild(cardFrame);
+  
+          if (card.movement) {
+            for (const dir in card.movement) {
+              if (card.movement[dir]) {
+                const finalDir = card.owner === userId ? dir : flipDirection(dir);
+                const arrow = document.createElement('div');
+                arrow.className = `movement movement-${finalDir}`;
+                arrow.style.borderColor = (card.movement[dir] === 'any') ? 'red' : 'lime';
+                cardFrame.appendChild(arrow);
+              }
+            }
+          } else if (card.creation_needs && Array.isArray(card.creation_needs)) {
+            for (const dir of card.creation_needs) {
               const finalDir = card.owner === userId ? dir : flipDirection(dir);
               const arrow = document.createElement('div');
               arrow.className = `movement movement-${finalDir}`;
-              arrow.style.borderColor = (card.movement[dir] === 'any') ? 'red' : 'lime';
+              arrow.style.borderColor = 'white';
               cardFrame.appendChild(arrow);
             }
           }
+          
+  
         }
-
       }
+
 
       if (x === 3 && y === 3) {
         const centerCounter = document.createElement('div');
@@ -588,8 +634,14 @@ function showCardPreview(card) {
         content.appendChild(arrow);
       }
     }
-  } else if ((card.type === 'sorcery' || card.type === 'land') && Array.isArray(card.activation_needs)) {
+  } else if ((card.type === 'sorcery') && Array.isArray(card.activation_needs)) {
     for (const dir of card.activation_needs) {
+      const arrow = document.createElement('div');
+      arrow.className = `arrow ${dir} white`;
+      content.appendChild(arrow);
+    }
+  } else if ((card.type === 'land') && Array.isArray(card.creation_needs)) {
+    for (const dir of card.creation_needs) {
       const arrow = document.createElement('div');
       arrow.className = `arrow ${dir} white`;
       content.appendChild(arrow);
@@ -779,6 +831,23 @@ async function handleClick(x, y, cell) {
           clearMoveHighlights();
         }
       );
+    } else if (selectedCard.type === 'land') {
+      // 👇 Full board activation allowed
+      confirmAction(
+        `Spend ${selectedCard.mana} mana to create ${selectedCard.name} on this tile?`,
+        "Create!",
+        "Cancel",
+        () => {
+          ws.send(JSON.stringify({
+            type: 'place-land',
+            user_id: userId,
+            slot: selectedHandIndex,
+            pos: [x, y]
+          }));
+          selectedHandIndex = null;
+          clearMoveHighlights();
+        }
+      );
     }
 
     return;
@@ -838,12 +907,13 @@ async function handleClick(x, y, cell) {
   }
 }
 
-function highlightSorceryZones() {
+function highlightPlaceActivateZones() {
   clearMoveHighlights();
 
   const hand = userId === '1' ? hand1 : hand2;
   const card = hand[selectedHandIndex];
-  if (!card || !Array.isArray(card.activation_needs)) return;
+  const needs = card?.activation_needs || card?.creation_needs;
+  if (!card || !Array.isArray(needs)) return;
 
   const directions = {
     "forward": userId === '1' ? [-1, 0] : [1, 0],
@@ -871,29 +941,34 @@ function highlightSorceryZones() {
     for (let y = 0; y < board[0].length; y++) {
       let satisfiesAll = true;
 
-      for (const dir of card.activation_needs) {
+      for (const dir of needs) {
         const [dx, dy] = directions[dir];
         const tx = x + dx;
         const ty = y + dy;
 
-        // 👇 Skip out-of-bounds
         if (tx < 0 || tx >= 7 || ty < 0 || ty >= 7) {
           satisfiesAll = false;
           break;
         }
 
         const neighbor = board[tx][ty];
-        if (!neighbor || neighbor.type !== 'monster') {
-          satisfiesAll = false;
-          break;
+        const land = landBoard?.[tx]?.[ty];
+        let valid = false;
+
+        if (neighbor && neighbor.type === 'monster') {
+          const baseOpposite = flipDirection[dir];
+          const effectiveDir = neighbor.owner === userId ? baseOpposite : flipDirection[baseOpposite];
+          const movementVal = neighbor.movement?.[effectiveDir];
+          if (movementVal === 1 || movementVal === 'any') {
+            valid = true;
+          }
         }
 
-        // 👇 Flip direction based on who owns the monster
-        const baseOpposite = flipDirection[dir];
-        const effectiveDir = neighbor.owner === userId ? baseOpposite : flipDirection[baseOpposite];
+        if (land && land.creation_needs?.includes(flipDirection[dir])) {
+          valid = true;
+        }
 
-        const movementVal = neighbor.movement?.[effectiveDir];
-        if (movementVal !== 1 && movementVal !== 'any') {
+        if (!valid) {
           satisfiesAll = false;
           break;
         }
@@ -909,6 +984,7 @@ function highlightSorceryZones() {
     }
   }
 }
+
 
 
 
