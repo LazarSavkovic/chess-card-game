@@ -587,7 +587,7 @@ class FrozenBarrier(Land):
     creation_needs = ["back-right", 'forward']
 
     def __init__(self, owner):
-        super().__init__('frozen_barrier', owner, image='/static/cards/frozen_barrier.png', mana=1)
+        super().__init__('frozen_barrier', owner, image='/static/cards/frozen_barrier.png', mana=2)
 
     def blocks_movement(self, monster):
         if monster.owner != self.owner:
@@ -597,7 +597,7 @@ class FrozenBarrier(Land):
 
 class StormNexus(Land):
     name = "Storm Nexus"
-    text = "Reduces the ATK of enemy monsters that step on this tile by 40."
+    text = "Reduces the ATK of enemy monsters that land on this tile by 40."
     creation_needs = ["back-left"]
 
     def __init__(self, owner):
@@ -606,3 +606,22 @@ class StormNexus(Land):
     def on_enter(self, game, pos, monster):
         if monster.owner != self.owner:
             monster.attack -= 40
+
+
+class WastelandMine(Land):
+    name = "Wasteland Mine"
+    text = "An opponents monster going over or landing on this land loses 30 ATK and DEF"
+    creation_needs = ["right", 'left']
+
+    def __init__(self, owner):
+        super().__init__('wasteland_mine', owner, image='/static/cards/wasteland_mine.png', mana=3)
+
+    def on_enter(self, game, pos, monster):
+        if monster.owner != self.owner:
+            monster.attack -= 30
+            monster.defense -= 30
+
+    def affect_monster_passing(self, monster):
+        if monster.owner != self.owner:
+            monster.attack -= 40
+            monster.defense -= 30

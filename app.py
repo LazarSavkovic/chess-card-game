@@ -197,6 +197,9 @@ class ChessGame:
         if target_land:
             if hasattr(target_land, 'blocks_movement') and target_land.blocks_movement(card):
                 return False, f"{target_land.name} blocks movement!"
+            if hasattr(target_land, 'affects_monster_passing'):
+                target_land.affects_monster_passing(card)
+                return False, f"{target_land.name} blocks movement!"
             else:
                 if hasattr(target_land, 'on_enter'):
                     target_land.on_enter(self, (tx, ty), card)
