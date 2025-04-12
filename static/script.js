@@ -357,7 +357,7 @@ function renderHand() {
       }
 
       if (window.pendingDiscard){
-        
+
         cardEl.onclick = () => {
           ws.send(JSON.stringify({ type: 'end-turn-with-discard', user_id: card.owner, slot: i }));
         }
@@ -634,6 +634,10 @@ function showCardPreview(card) {
 
   const cardEl = document.createElement('div');
   cardEl.classList.add('play-card');
+
+  // Set font size based on screen width
+  cardEl.style.fontSize = window.innerWidth < 1120 ? '8px' : '14px';
+
 
   // Add theme class based on type
   if (card.type === 'monster') {
