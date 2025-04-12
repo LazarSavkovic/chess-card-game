@@ -105,6 +105,17 @@ ws.onmessage = (event) => {
     
   }
 
+  if (data.type === 'discard-to-end-turn') {
+
+    notify('yellow', `Discard card from hand to end turn`);
+
+    window.pendingDiscard = true;
+    renderHand()
+
+    return
+
+  }
+
   // 🛑 Exit early only if not a game update message
   if (!data.board && data.type !== 'game-over') return;
 
@@ -268,6 +279,7 @@ function renderHand() {
         cardEl.classList.remove('hovered');
       };
 
+
       // 👾 Monster Card
       if (card.type === 'monster') {
         const info = document.createElement('div');
@@ -344,12 +356,23 @@ function renderHand() {
         cardEl.appendChild(info);
       }
 
+      if (window.pendingDiscard){
+        
+        cardEl.onclick = () => {
+          ws.send(JSON.stringify({ type: 'end-turn-with-discard', user_id: card.owner, slot: i }));
+        }
+      } 
+
     } else {
       cardEl.innerText = '🂠'; // Back of opponent card
     }
 
     handDiv.appendChild(cardEl);
   });
+
+  if (window.pendingDiscard) {
+    window.pendingDiscard = false;
+  }
 }
 
 function styleCardInfo(info) {

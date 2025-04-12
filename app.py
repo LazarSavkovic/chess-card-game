@@ -458,8 +458,38 @@ def game(ws, game_id):
                         'moves_left': game.max_moves_per_turn - game.moves_this_turn,
                                 'center_tile_control': game.center_tile_control
                     }))
-            elif data['type'] == 'end-turn':
-                if game.center_tile_control[user_id] >= 6:
+            elif (data['type'] == 'end-turn') or (data['type'] == 'end-turn-with-discard'):
+                if data['type'] == 'end-turn-with-discard':
+
+                    discarded_card = game.hands[user_id].pop(data['slot'])
+                    game.graveyard[user_id].append(discarded_card)
+
+                if len(game.hands[user_id]) > 5:
+
+                    for uid, ws_conn in connected_users[game_id].items():
+                        ws_conn.send(json.dumps({
+                            'type': 'discard-to-end-turn' if uid == user_id else 'opponent-discarding',
+                            'board': [[p.to_dict() if p else None for p in row] for row in game.board],
+                            'land_board': [[p.to_dict() if p else None for p in row] for row in game.land_board],
+                            'hand1': [c.to_dict() for c in game.hands['1']],
+                            'hand2': [c.to_dict() for c in game.hands['2']],
+                            'graveyard': {
+                                '1': [c.to_dict() for c in game.graveyard['1']],
+                                '2': [c.to_dict() for c in game.graveyard['2']],
+                            },
+                            'deck_sizes': {
+                                '1': len(game.decks['1']),
+                                '2': len(game.decks['2']),
+                            },
+                            'turn': game.current_player,
+                            'success': True,
+                            'mana': game.mana,
+                            'info': f"Discarding needed to end turn!",
+                            'moves_left': game.max_moves_per_turn - game.moves_this_turn,
+                            'center_tile_control': game.center_tile_control
+                        }))
+
+                elif game.center_tile_control[user_id] >= 6:
                     # This player wins
                     for uid, ws_conn in connected_users[game_id].items():
                         ws_conn.send(json.dumps({
@@ -484,11 +514,10 @@ def game(ws, game_id):
                             'game_over': {
                                 'result': 'victory' if uid == user_id else 'defeat'
                             },
-                                'center_tile_control': game.center_tile_control
+                            'center_tile_control': game.center_tile_control
                         }))
-                    return
 
-                if user_id == game.current_player:
+                elif user_id == game.current_player:
                     game.toggle_turn()
                     serialized_board = [[p.to_dict() if p else None for p in row] for row in game.board]
                     serialized_land_board = [[p.to_dict() if p else None for p in row] for row in game.land_board]
@@ -515,6 +544,7 @@ def game(ws, game_id):
                             'moves_left': game.max_moves_per_turn - game.moves_this_turn,
                             'center_tile_control': game.center_tile_control
                         }))
+
             elif data['type'] == 'summon':
                 slot = data['slot']
                 to_pos = data['to']
@@ -569,6 +599,7 @@ def game(ws, game_id):
                         'mana': game.mana,
                         'center_tile_control': game.center_tile_control
                     }))
+
             elif data['type'] == 'direct-attack':
                 pos = data['pos']
                 success, info, game_over = game.direct_attack(pos, user_id)
@@ -627,6 +658,7 @@ def game(ws, game_id):
                             'moves_left': game.max_moves_per_turn - game.moves_this_turn,
                             'center_tile_control': game.center_tile_control
                         }))
+
             elif data['type'] == 'activate-sorcery':
                 if not user_id:
                     continue  # or raise, or wait — don't access hands/cards yet

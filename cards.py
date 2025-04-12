@@ -587,7 +587,7 @@ class FrozenBarrier(Land):
     creation_needs = ["back-right", 'forward']
 
     def __init__(self, owner):
-        super().__init__('frozen_barrier', owner, image='/static/cards/frozen_barrier.png', mana=2)
+        super().__init__('frozen_barrier', owner, image='/static/cards/frozen_barrier.png', mana=1)
 
     def blocks_movement(self, monster):
         if monster.owner != self.owner:
@@ -611,7 +611,7 @@ class StormNexus(Land):
 class WastelandMine(Land):
     name = "Wasteland Mine"
     text = "An opponents monster going over or landing on this land loses 30 ATK and DEF"
-    creation_needs = ["right", 'left']
+    creation_needs = ["right"]
 
     def __init__(self, owner):
         super().__init__('wasteland_mine', owner, image='/static/cards/wasteland_mine.png', mana=3)
@@ -623,5 +623,19 @@ class WastelandMine(Land):
 
     def affect_monster_passing(self, monster):
         if monster.owner != self.owner:
-            monster.attack -= 40
+            monster.attack -= 30
             monster.defense -= 30
+
+
+class RuleOfTheMeek(Land):
+    name = "Rule of the Meek"
+    text = "Opponent's monsters with ATK or DEF over 150 cannot move across this tile."
+    creation_needs = ["forward-right", 'right']
+
+    def __init__(self, owner):
+        super().__init__('rule_of_the_meek', owner, image='/static/cards/rule_of_the_meek.png', mana=1)
+
+    def blocks_movement(self, monster):
+        if monster.owner != self.owner and ((monster.defense > 150) and (monster.attack > 150)):
+            return True
+        return False
