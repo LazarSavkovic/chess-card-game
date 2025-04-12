@@ -410,23 +410,32 @@ function renderGraveyards() {
   const myGrave = userId === '1' ? graveyard1 : graveyard2;
   const oppGrave = userId === '1' ? graveyard2 : graveyard1;
 
-  myGrave.forEach(card => {
+  myGrave.forEach((card, index) => {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'grave-card';
     cardDiv.style.backgroundImage = `url(${card.image})`;
     cardDiv.title = card.name;
     cardDiv.id = `card-${card.id}`;
+  
+    // Stack effect: each card is shifted 2px up and left
+    cardDiv.style.top = `${-index * 2}px`;
+    cardDiv.style.left = `${-index * 2}px`;
+  
     myGraveyard.appendChild(cardDiv);
   });
-
-  oppGrave.forEach(card => {
+  
+  oppGrave.forEach((card, index) => {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'grave-card';
     cardDiv.style.backgroundImage = `url(${card.image})`;
     cardDiv.title = card.name;
     cardDiv.id = `card-${card.id}`;
+    cardDiv.style.top = `${-index * 2}px`;
+    cardDiv.style.left = `${-index * 2}px`;
+  
     oppGraveyard.appendChild(cardDiv);
   });
+  
 }
 
 

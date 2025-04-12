@@ -306,9 +306,9 @@ class CelestialTitan(Monster):
 class BlazingRain(Sorcery):
     name = 'Blazing Rain'
     text = "Weaken all opponent's DEF by 50."
-    activation_needs = ["back", "forward"]
+    activation_needs = ["back"]
     def __init__(self, owner):
-        super().__init__('blazing_rain', owner, image='/static/cards/blazing_rain.png', mana=2)
+        super().__init__('blazing_rain', owner, image='/static/cards/blazing_rain.png', mana=3)
 
 
     def affect_board(self, game, target_pos, user_id):
@@ -371,7 +371,7 @@ class DivineReset(Sorcery):
 class ArcaneTempest(Sorcery):
     name = 'Arcane Tempest'
     text = "Reduce all opponent's ATK by 40."
-    activation_needs = ['left', 'back-right']
+    activation_needs = ['back-right']
 
     def __init__(self, owner):
         super().__init__('arcane_tempest', owner, image='/static/cards/arcane_tempest.png', mana=2)
@@ -388,7 +388,7 @@ class ArcaneTempest(Sorcery):
 class TargetedDestruction(Sorcery):
     name = "Targeted Destruction"
     text = "Choose and destroy an enemy monster."
-    activation_needs = ['forward-right', 'back']
+    activation_needs = ['forward-right']
 
     def __init__(self, owner):
         super().__init__(
@@ -422,7 +422,7 @@ class TargetedDestruction(Sorcery):
 class EmpoweringLight(Sorcery):
     name = "Empowering Light"
     text = "Choose a monster to increase its ATK by 50."
-    activation_needs = ['right', 'back-left']  # Optional highlight rules
+    activation_needs = ['back-left']  # Optional highlight rules
 
     def __init__(self, owner):
         super().__init__(
@@ -495,7 +495,7 @@ class MindSeize(Sorcery):
             card_id="mind_seize",
             owner=owner,
             image="/static/cards/mind_seize.png",
-            mana=3
+            mana=2
         )
 
     def requires_additional_input(self):
@@ -521,14 +521,14 @@ class MindSeize(Sorcery):
 class PowerSurge(Sorcery):
     name = "Power Surge"
     text = "Choose a monster to double its ATK and DEF."
-    activation_needs = ['forward', 'left', 'back']
+    activation_needs = ['forward', 'left']
 
     def __init__(self, owner):
         super().__init__(
             card_id="power_surge",
             owner=owner,
             image="/static/cards/power_surge.png",
-            mana=3
+            mana=2
         )
 
     def requires_additional_input(self):
@@ -554,7 +554,7 @@ class PowerSurge(Sorcery):
 class VolcanicRift(Land):
     name = "Volcanic Rift"
     text = "Burns an opponent's monster for 50 DEF when it steps on this tile."
-    creation_needs = ["forward", 'back-right']
+    creation_needs = ["forward", 'back']
 
     def __init__(self, owner):
         super().__init__('volcanic_rift', owner, image='/static/cards/volcanic_rift.png', mana=2)
@@ -571,10 +571,10 @@ class VolcanicRift(Land):
 class SacredGrove(Land):
     name = "Sacred Grove"
     text = "Heals your monster for 30 DEF every turn it's on this tile."
-    creation_needs = ["back-right", 'left']
+    creation_needs = ['left']
 
     def __init__(self, owner):
-        super().__init__('sacred_grove', owner, image='/static/cards/sacred_grove.png', mana=2)
+        super().__init__('sacred_grove', owner, image='/static/cards/sacred_grove.png', mana=3)
 
     def on_turn_start(self, game, pos, monster):
         if monster.owner == self.owner:
